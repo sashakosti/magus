@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Fast Commit",
+    "description": "Ты теперь можешь использовать команду `magus q \"задача\"` для быстрого добавления.",
+    "unlock_level": 2
+  },
+  {
+    "name": "Discipline I",
+    "description": "+5% XP за выполнение 3 и более задач в день.",
+    "unlock_level": 3
+  },
+  {
+    "name": "Комбо-стрик",
+    "description": "+5 бонусных XP за каждый второй выполненный квест в течение часа.",
+    "unlock_level": 3
+  },
+  {
+    "name": "Sleep Core",
+    "description": "Если ты закрыл день до 00:00 — +10 бонусного XP.",
+    "unlock_level": 4
+  },
+  {
+    "name": "Специалист по 'Arc'",
+    "description": "+10% XP за выполнение квестов типа 'Arc'.",
+    "unlock_level": 4
+  },
+  {
+    "name": "Lexical Blade",
+    "description": "Открывает доступ к генерации квестов с помощью LLM.",
+    "unlock_level": 5
+  },
+  {
+    "name": "Удача новичка",
+    "description": "5% шанс получить удвоенный опыт за дейлик.",
+    "unlock_level": 2
+  },
+  {
+    "name": "Фокус",
+    "description": "Первый квест дня приносит на 5 XP больше.",
+    "unlock_level": 2
+  }
+]

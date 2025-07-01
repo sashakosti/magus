@@ -1,0 +1,13 @@
+{
+  "name": "Dude",
+  "level": 2,
+  "xp": 60,
+  "next_level_xp": 400,
+  "perks": [
+    "Фокус"
+  ],
+  "history": {
+    "quests_completed": 6,
+    "xp_gained": 160
+  }
+}
