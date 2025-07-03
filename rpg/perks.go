@@ -9,9 +9,10 @@ import (
 
 // Perk определяет структуру перка
 type Perk struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	UnlockLevel int    `json:"unlock_level"`
+	Name          string             `json:"name"`
+	Description   string             `json:"description"`
+	UnlockLevel   int                `json:"unlock_level"`
+	RequiredClass player.PlayerClass `json:"required_class,omitempty"`
 }
 
 // LoadAllPerks загружает все перки из JSON-файла.
@@ -38,15 +39,24 @@ func GetPerkChoices(p *player.Player) ([]Perk, error) {
 
 	var availablePerks []Perk
 	for _, perk := range allPerks {
-		// П��оверяем, что перк доступен на этом уровне и еще не получен игроком
-		if perk.UnlockLevel == p.Level+1 && !hasPerk(p, perk.Name) {
-			availablePerks = append(availablePerks, perk)
+		// Проверяем, что перк доступен на этом уровне и еще не получен игроком
+		if perk.UnlockLevel > p.Level {
+			continue
 		}
+		if hasPerk(p, perk.Name) {
+			continue
+		}
+
+		// Проверяем классовые ограничения
+		if perk.RequiredClass != player.ClassNone && perk.RequiredClass != p.Class {
+			continue
+		}
+
+		availablePerks = append(availablePerks, perk)
 	}
 
-	// Возвращаем до 3 перков
+	// Возвращаем до 3 перков (можно добавить случайный выбор)
 	if len(availablePerks) > 3 {
-		// В будущем здесь можно добавить случайный выбор
 		return availablePerks[:3], nil
 	}
 

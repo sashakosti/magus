@@ -22,11 +22,24 @@ func Show() {
 	}
 
 	fmt.Printf("🧙 Имя: %s\n", p.Name)
-	fmt.Printf("📈 Уровень: %d\n", p.Level)
+    if p.Class != player.ClassNone {
+        fmt.Printf("🎖️ Класс: %s\n", p.Class)
+    }
+    fmt.Printf("📈 Уровень: %d\n", p.Level)
 	fmt.Printf("🔋 XP: %d / %d\n", p.XP, p.NextLevelXP)
-	fmt.Println("🎁 Перки:")
-	/* for _, perk := range p.Perks {
-		desc := player.GetPerkDescription(perk)
-		fmt.Printf("  • %s — %s\n", perk, desc)
-	} */
+	fmt.Printf("✨ Очки навыков: %d\n", p.SkillPoints)
+
+	if len(p.Perks) > 0 {
+		fmt.Println("🎁 Перки:")
+		for _, perk := range p.Perks {
+			fmt.Printf("  • %s\n", perk)
+		}
+	}
+
+	if len(p.Skills) > 0 {
+		fmt.Println("🧠 Навыки:")
+		for skill, level := range p.Skills {
+			fmt.Printf("  • %s: %d\n", skill, level)
+		}
+	}
 }

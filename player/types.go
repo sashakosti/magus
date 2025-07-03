@@ -2,13 +2,26 @@ package player
 
 import "time"
 
+type PlayerClass string
+
+const (
+	ClassNone      PlayerClass = ""
+	ClassMage      PlayerClass = "Маг"
+	ClassWarrior   PlayerClass = "Воин"
+	ClassRogue     PlayerClass = "Разбойник"
+)
+
 type Player struct {
-	Name        string   `json:"name"`
-	Level       int      `json:"level"`
-	XP          int      `json:"xp"`
-	NextLevelXP int      `json:"next_level_xp"`
-	Perks       []string `json:"perks"`
-	History     struct {
+	Name            string          `json:"name"`
+	Class           PlayerClass     `json:"class,omitempty"`
+	Level           int             `json:"level"`
+	XP              int             `json:"xp"`
+	NextLevelXP     int             `json:"next_level_xp"`
+	Perks           []string        `json:"perks"`
+	SkillPoints     int             `json:"skill_points"`
+	Skills          map[string]int  `json:"skills"`
+	LastCompletedAt time.Time       `json:"last_completed_at,omitempty"` // For combo-streak perk
+	History         struct {
 		QuestsCompleted int `json:"quests_completed"`
 		XPGained        int `json:"xp_gained"`
 	} `json:"history"`
@@ -27,17 +40,21 @@ const (
 	Daily QuestType = "daily"
 	Arc   QuestType = "arc"
 	Meta  QuestType = "meta"
+	Epic  QuestType = "epic"
+	Chore QuestType = "chore"
 )
 
 type Quest struct {
 	ID          string    `json:"id"`
+	ParentID    string    `json:"parent_id,omitempty"` // ID родительского квеста
 	Title       string    `json:"title"`
 	Type        QuestType `json:"type"`
 	XP          int       `json:"xp"`
-	Completed   bool      `json:"completed"` // Для квестов типа Arc и Meta
-	CompletedAt time.Time `json:"completed_at"` // Для дейликов
+	Completed   bool      `json:"completed"`
+	CompletedAt time.Time `json:"completed_at"`
 	CreatedAt   time.Time `json:"created_at"`
 }
+
 type History struct {
 	QuestsCompleted int `json:"quests_completed"`
 	XPGained        int `json:"xp_gained"`

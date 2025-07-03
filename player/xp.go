@@ -19,7 +19,7 @@ func AddXP(xp int) (bool, error) {
 	p.History.QuestsCompleted++
 	p.History.XPGained += xp
 
-	err = savePlayer(p)
+	err = SavePlayer(p)
 	if err != nil {
 		return false, err
 	}
@@ -28,7 +28,7 @@ func AddXP(xp int) (bool, error) {
 	return p.XP >= p.NextLevelXP, nil
 }
 
-// LevelUpPlayer повышает уровень игрока и добавляет выбранный перк.
+// LevelUpPlayer повышает уровень игрока, добавляет выбранный перк и начисляет очки навыков.
 func LevelUpPlayer(chosenPerkName string) error {
 	p, err := LoadPlayer()
 	if err != nil {
@@ -43,11 +43,13 @@ func LevelUpPlayer(chosenPerkName string) error {
 	p.Level++
 	p.XP -= p.NextLevelXP
 	p.NextLevelXP = calculateNextLevelXP(p.Level)
+	p.SkillPoints += 10 // Начисляем 10 очков навыков за уровень
+
 	if chosenPerkName != "" {
 		p.Perks = append(p.Perks, chosenPerkName)
 	}
 
-	return savePlayer(p)
+	return SavePlayer(p)
 }
 
 // LoadPlayer загружает данные игрока из файла.
@@ -58,8 +60,9 @@ func LoadPlayer() (*Player, error) {
 			Level:       1,
 			XP:          0,
 			NextLevelXP: 100,
+			Skills:      make(map[string]int), // Инициализация карты навыков
 		}
-		return p, savePlayer(p)
+		return p, SavePlayer(p)
 	}
 
 	file, err := ioutil.ReadFile(playerFile)
@@ -71,11 +74,17 @@ func LoadPlayer() (*Player, error) {
 	if err := json.Unmarshal(file, &p); err != nil {
 		return nil, err
 	}
+
+	// Для обратной совместимости: если у старого игрока нет карты навыков, создаем ее
+	if p.Skills == nil {
+		p.Skills = make(map[string]int)
+	}
+
 	return &p, nil
 }
 
-// savePlayer сохраняет данные игрока в файл.
-func savePlayer(p *Player) error {
+// SavePlayer сохраняет данные игрока в файл.
+func SavePlayer(p *Player) error {
 	data, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {
 		return err
