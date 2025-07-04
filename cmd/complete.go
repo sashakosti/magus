@@ -106,6 +106,10 @@ func addXP(xp int, questType player.QuestType) {
 
 	p, err := player.LoadPlayer()
 	if err != nil {
+		if err == player.ErrPlayerNotFound {
+			fmt.Println("🔮 Игрок не найден. Создайте его, запустив `magus` без аргументов.")
+			return
+		}
 		fmt.Println("❌ Ошибка загрузки игрока для начисления XP:", err)
 		return
 	}

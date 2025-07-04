@@ -1,31 +1,26 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"magus/player"
-	"os"
 )
 
 func Show() {
-	file, err := os.ReadFile("data/player.json")
+	p, err := player.LoadPlayer()
 	if err != nil {
+		if err == player.ErrPlayerNotFound {
+			fmt.Println("🔮 Игрок не найден. Создайте его, запустив `magus` без аргументов.")
+			return
+		}
 		fmt.Println("❌ Не удалось прочитать player.json:", err)
 		return
 	}
 
-	var p player.Player
-	err = json.Unmarshal(file, &p)
-	if err != nil {
-		fmt.Println("❌ Ошибка разбора JSON:", err)
-		return
-	}
-
 	fmt.Printf("🧙 Имя: %s\n", p.Name)
-    if p.Class != player.ClassNone {
-        fmt.Printf("🎖️ Класс: %s\n", p.Class)
-    }
-    fmt.Printf("📈 Уровень: %d\n", p.Level)
+	if p.Class != player.ClassNone {
+		fmt.Printf("🎖️ Класс: %s\n", p.Class)
+	}
+	fmt.Printf("📈 Уровень: %d\n", p.Level)
 	fmt.Printf("🔋 XP: %d / %d\n", p.XP, p.NextLevelXP)
 	fmt.Printf("✨ Очки навыков: %d\n", p.SkillPoints)
 

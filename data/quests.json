@@ -1,5 +1,94 @@
 [
   {
+    "id": "a53c76aa",
+    "title": "Приготовить позавтркать",
+    "type": "daily",
+    "xp": 50,
+    "tags": [
+      "Еда"
+    ],
+    "completed": false,
+    "completed_at": "2025-07-04T17:50:43.336119+03:00",
+    "created_at": "2025-07-04T17:29:54.279908+03:00"
+  },
+  {
+    "id": "c9cfb63b",
+    "title": "Помыть посуду",
+    "type": "chore",
+    "xp": 70,
+    "completed": true,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "2025-07-04T17:16:38.944796+03:00"
+  },
+  {
+    "id": "c50ef6c9",
+    "parent_id": "b4f8632f",
+    "title": "Уровень в бандит",
+    "type": "daily",
+    "xp": 50,
+    "completed": false,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "2025-07-03T17:06:12.310865+03:00"
+  },
+  {
+    "id": "b4f8632f",
+    "title": "Bandit",
+    "type": "epic",
+    "xp": 1500,
+    "completed": false,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "2025-07-03T17:05:23.951535+03:00"
+  },
+  {
+    "id": "f0a2f644",
+    "parent_id": "b2414891",
+    "title": "Ежедневный коммит по magus",
+    "type": "daily",
+    "xp": 50,
+    "completed": false,
+    "completed_at": "2025-07-03T17:04:31.03006+03:00",
+    "created_at": "2025-07-03T16:59:12.669509+03:00"
+  },
+  {
+    "id": "ef3ec7e1",
+    "parent_id": "b2414891",
+    "title": "Имплементация перков",
+    "type": "arc",
+    "xp": 50,
+    "completed": true,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "2025-07-03T16:45:39.07516+03:00"
+  },
+  {
+    "id": "c6d435f9",
+    "parent_id": "b2414891",
+    "title": "Имплементация классов",
+    "type": "arc",
+    "xp": 50,
+    "completed": true,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "2025-07-03T16:45:30.505395+03:00"
+  },
+  {
+    "id": "5257f7ff",
+    "parent_id": "b2414891",
+    "title": "Имплементация скиллов",
+    "type": "arc",
+    "xp": 150,
+    "completed": true,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "2025-07-03T16:45:08.169666+03:00"
+  },
+  {
+    "id": "b2414891",
+    "title": "Построить Magus",
+    "type": "epic",
+    "xp": 150,
+    "completed": false,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "2025-07-03T16:43:41.153708+03:00"
+  },
+  {
     "id": "daab72dd",
     "title": "Почистить зубы",
     "type": "daily",
@@ -9,6 +98,15 @@
     "created_at": "2025-07-01T15:24:20.025708+03:00"
   },
   {
+    "id": "72fc1d7e",
+    "title": "Поработать над Go-проектом",
+    "type": "daily",
+    "xp": 50,
+    "completed": false,
+    "completed_at": "2025-07-04T17:50:54.447917+03:00",
+    "created_at": "2025-07-01T14:56:40.959691+03:00"
+  },
+  {
     "id": "bbf7621d",
     "title": "Помыться",
     "type": "daily",
@@ -16,15 +114,6 @@
     "completed": false,
     "completed_at": "2025-07-03T16:46:06.91107+03:00",
     "created_at": "2025-07-01T14:56:01.083205+03:00"
-  },
-  {
-    "id": "72fc1d7e",
-    "title": "Поработать над Go-проектом",
-    "type": "daily",
-    "xp": 50,
-    "completed": false,
-    "completed_at": "2025-07-03T16:00:32.143985+03:00",
-    "created_at": "2025-07-01T14:56:40.959691+03:00"
   },
   {
     "id": "5a5b3525",
@@ -43,44 +132,5 @@
     "completed": true,
     "completed_at": "2025-07-01T14:39:46.108457+03:00",
     "created_at": "2025-07-01T14:34:29.31417+03:00"
-  },
-  {
-    "id": "b2414891",
-    "title": "Построить Magus",
-    "type": "epic",
-    "xp": 150,
-    "completed": false,
-    "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-03T16:43:41.153708+03:00"
-  },
-  {
-    "id": "5257f7ff",
-    "parent_id": "b2414891",
-    "title": "Имплементация скиллов",
-    "type": "arc",
-    "xp": 150,
-    "completed": true,
-    "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-03T16:45:08.169666+03:00"
-  },
-  {
-    "id": "c6d435f9",
-    "parent_id": "b2414891",
-    "title": "Имплементация классов",
-    "type": "arc",
-    "xp": 50,
-    "completed": true,
-    "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-03T16:45:30.505395+03:00"
-  },
-  {
-    "id": "ef3ec7e1",
-    "parent_id": "b2414891",
-    "title": "Имплементация перков",
-    "type": "arc",
-    "xp": 50,
-    "completed": true,
-    "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-03T16:45:39.07516+03:00"
   }
 ]

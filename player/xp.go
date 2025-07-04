@@ -2,11 +2,14 @@ package player
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 )
 
 const playerFile = "data/player.json"
+
+var ErrPlayerNotFound = errors.New("player file not found")
 
 // AddXP добавляет опыт игроку и возвращает true, если можно повысить уровень.
 func AddXP(xp int) (bool, error) {
@@ -52,17 +55,29 @@ func LevelUpPlayer(chosenPerkName string) error {
 	return SavePlayer(p)
 }
 
+// CreatePlayer создает нового игрока с заданным именем.
+func CreatePlayer(name string) (*Player, error) {
+	if name == "" {
+		name = "Magus" // Имя по умолчанию
+	}
+	p := &Player{
+		Name:        name,
+		Level:       1,
+		XP:          0,
+		NextLevelXP: 100,
+		Skills:      make(map[string]int),
+		History: History{
+			QuestsCompleted: 0,
+			XPGained:        0,
+		},
+	}
+	return p, SavePlayer(p)
+}
+
 // LoadPlayer загружает данные игрока из файла.
 func LoadPlayer() (*Player, error) {
 	if _, err := os.Stat(playerFile); os.IsNotExist(err) {
-		p := &Player{
-			Name:        "Magus",
-			Level:       1,
-			XP:          0,
-			NextLevelXP: 100,
-			Skills:      make(map[string]int), // Инициализация карты навыков
-		}
-		return p, SavePlayer(p)
+		return nil, ErrPlayerNotFound
 	}
 
 	file, err := ioutil.ReadFile(playerFile)
@@ -83,7 +98,7 @@ func LoadPlayer() (*Player, error) {
 	return &p, nil
 }
 
-// SavePlayer сохраняет данные игрока в файл.
+// SavePlayer сохраняет дан��ые игрока в файл.
 func SavePlayer(p *Player) error {
 	data, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {
@@ -100,3 +115,4 @@ func SavePlayer(p *Player) error {
 func calculateNextLevelXP(level int) int {
 	return 100 * level * level
 }
+

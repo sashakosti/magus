@@ -45,14 +45,16 @@ const (
 )
 
 type Quest struct {
-	ID          string    `json:"id"`
-	ParentID    string    `json:"parent_id,omitempty"` // ID родительского квеста
-	Title       string    `json:"title"`
-	Type        QuestType `json:"type"`
-	XP          int       `json:"xp"`
-	Completed   bool      `json:"completed"`
-	CompletedAt time.Time `json:"completed_at"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID          string     `json:"id"`
+	ParentID    string     `json:"parent_id,omitempty"` // ID родительского квеста
+	Title       string     `json:"title"`
+	Type        QuestType  `json:"type"`
+	XP          int        `json:"xp"`
+	Tags        []string   `json:"tags,omitempty"`
+	Deadline    *time.Time `json:"deadline,omitempty"`
+	Completed   bool       `json:"completed"`
+	CompletedAt time.Time  `json:"completed_at"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 type History struct {

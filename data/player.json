@@ -1,20 +1,21 @@
 {
   "name": "Dude",
+  "class": "Маг",
   "level": 3,
-  "xp": 0,
+  "xp": 220,
   "next_level_xp": 900,
   "perks": [
     "Фокус"
   ],
-  "skill_points": 2,
+  "skill_points": 0,
   "skills": {
     "Дисциплина": 5,
     "Концентрация": 8,
-    "Обучаемость": 10
+    "Обучаемость": 12
   },
   "last_completed_at": "0001-01-01T00:00:00Z",
   "history": {
-    "quests_completed": 12,
-    "xp_gained": 500
+    "quests_completed": 16,
+    "xp_gained": 720
   }
 }

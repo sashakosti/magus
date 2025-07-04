@@ -31,6 +31,8 @@ func main() {
 		cmd.Why()
 	case "complete":
 		cmd.Complete()
+	case "roadmap":
+		cmd.Roadmap()
 	case "version":
 		cmd.Version()
 	default:
