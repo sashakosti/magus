@@ -5,16 +5,20 @@ import (
 	"log"
 	"magus/cmd"
 	"magus/tui"
+	"math/rand"
 	"os"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 	if len(os.Args) < 2 {
 		// Запускаем TUI, если нет команд
-		p := tea.NewProgram(tui.InitialModel())
-		if err := p.Start(); err != nil {
+		m := tui.InitialModel()
+		p := tea.NewProgram(&m, tea.WithAltScreen())
+		if _, err := p.Run(); err != nil {
 			log.Fatalf("Ошибка при запуске TUI: %v", err)
 		}
 		os.Exit(0)

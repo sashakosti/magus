@@ -15,8 +15,13 @@ type Player struct {
 	Name            string          `json:"name"`
 	Class           PlayerClass     `json:"class,omitempty"`
 	Level           int             `json:"level"`
+	HP              int             `json:"hp"`
+	MaxHP           int             `json:"max_hp"`
 	XP              int             `json:"xp"`
 	NextLevelXP     int             `json:"next_level_xp"`
+	Gold            int             `json:"gold"`
+	Mana            int             `json:"mana"`
+	MaxMana         int             `json:"max_mana"`
 	Perks           []string        `json:"perks"`
 	SkillPoints     int             `json:"skill_points"`
 	Skills          map[string]int  `json:"skills"`

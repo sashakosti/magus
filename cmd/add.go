@@ -1,24 +1,15 @@
 package cmd
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"magus/player"
 	"magus/storage"
+	"magus/utils"
 	"os"
 	"strings"
 	"time"
 )
-
-func generateID() string {
-	bytes := make([]byte, 4)
-	if _, err := rand.Read(bytes); err != nil {
-		panic(err)
-	}
-	return hex.EncodeToString(bytes)
-}
 
 func Add() {
 	if len(os.Args) < 3 {
@@ -52,7 +43,7 @@ func Add() {
 	}
 
 	newQuest := player.Quest{
-		ID:        generateID(),
+		ID:        utils.GenerateID(),
 		ParentID:  *parentID,
 		Title:     title,
 		Type:      player.QuestType(*taskType),

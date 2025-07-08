@@ -63,6 +63,8 @@ func CreatePlayer(name string) (*Player, error) {
 	p := &Player{
 		Name:        name,
 		Level:       1,
+		HP:          100,
+		MaxHP:       100,
 		XP:          0,
 		NextLevelXP: 100,
 		Skills:      make(map[string]int),
@@ -93,6 +95,12 @@ func LoadPlayer() (*Player, error) {
 	// Для обратной совместимости: если у старого игрока нет карты навыков, создаем ее
 	if p.Skills == nil {
 		p.Skills = make(map[string]int)
+	}
+
+	// Для обратной совместимости: ��сли у старого игрока нет HP, устанавливаем его
+	if p.MaxHP == 0 {
+		p.MaxHP = 100
+		p.HP = 100
 	}
 
 	return &p, nil
