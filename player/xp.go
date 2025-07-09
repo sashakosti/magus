@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 const playerFile = "data/player.json"
@@ -97,7 +98,7 @@ func LoadPlayer() (*Player, error) {
 		p.Skills = make(map[string]int)
 	}
 
-	// Для обратной совместимости: ��сли у старого игрока нет HP, устанавливаем его
+	// ��ля обратной совместимости: если у старого игрока нет HP, устанавливаем его
 	if p.MaxHP == 0 {
 		p.MaxHP = 100
 		p.HP = 100
@@ -106,8 +107,9 @@ func LoadPlayer() (*Player, error) {
 	return &p, nil
 }
 
-// SavePlayer сохраняет дан��ые игрока в файл.
+// SavePlayer сохраняет данные игрока в файл.
 func SavePlayer(p *Player) error {
+	p.LastSeen = time.Now()
 	data, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {
 		return err
@@ -123,4 +125,3 @@ func SavePlayer(p *Player) error {
 func calculateNextLevelXP(level int) int {
 	return 100 * level * level
 }
-

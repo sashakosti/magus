@@ -12,5 +12,5 @@ const (
 	stateClassChoice
 	stateCreatePlayer
 	stateDungeonPrep
-	stateDungeonRun
+	stateDungeon
 )

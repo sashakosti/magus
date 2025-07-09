@@ -4,95 +4,81 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"time"
 
 	"magus/dungeon"
 	"magus/player"
 
 	"github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
+// dungeonTickMsg is sent on every game tick.
+type dungeonTickMsg time.Time
+
 func (m *Model) updateDungeon(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok {
-		// Always allow quitting
-		if key.String() == "q" {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.String() == "q" {
+			m.dungeonTicker.Stop()
+			// Player escapes with what they've earned so far
+			m.player.Gold += m.dungeonRunGold
+			m.player.XP += m.dungeonRunXP
+			player.SavePlayer(&m.player)
 			m.state = stateHomepage
-			m.statusMessage = "Вы покинули данж."
+			m.statusMessage = fmt.Sprintf("Вы сбежали, сохранив %d золота и %d XP.", m.dungeonRunGold, m.dungeonRunXP)
 			return m, nil
 		}
 
-		switch m.dungeonState {
-		case DungeonStateExploring:
-			if key.String() == "e" {
-				m.handleExplore()
-			}
-		case DungeonStateInCombat:
-			switch strings.ToLower(key.String()) {
-			case "a":
-				m.handleCombatAttack()
-			case "f":
-				m.handleCombatFlee()
-			}
-		case DungeonStateFinished:
-			// Any key press returns to the homepage
-			m.state = stateHomepage
+	case dungeonTickMsg:
+		// Check if the run is over
+		remaining := m.dungeonSelectedDuration - time.Since(m.dungeonStartTime)
+		if remaining <= 0 {
+			return m.handleDungeonSuccess(), nil
+		}
+
+		// If combat is over, explore again. Otherwise, do a combat turn.
+		if m.dungeonState == DungeonStateExploring {
+			m.handleExplore()
+		} else if m.dungeonState == DungeonStateInCombat {
+			m.handleAutoCombatTurn()
+		}
+
+		// Wait for the next tick
+		return m, func() tea.Msg {
+			return dungeonTickMsg(<-m.dungeonTicker.C)
 		}
 	}
+
 	return m, nil
 }
 
+// handleExplore finds a new monster for the player to fight.
 func (m *Model) handleExplore() {
-	m.addDungeonLog("Вы исследуете темные коридоры...")
-
-	// 40% chance to encounter a monster
-	if rand.Intn(100) < 40 {
-		monster := dungeon.Monsters[rand.Intn(len(dungeon.Monsters))]
-		m.currentMonster = &monster // Create a new instance for the fight
-		m.dungeonState = DungeonStateInCombat
-		m.addDungeonLog(fmt.Sprintf("На вашем пути появляется %s!", m.currentMonster.Name))
-	} else {
-		// 10% chance to find gold
-		if rand.Intn(100) < 10 {
-			goldFound := rand.Intn(10) + 1
-			m.player.Gold += goldFound
-			player.SavePlayer(&m.player)
-			m.addDungeonLog(fmt.Sprintf("Вы нашли %d золота!", goldFound))
-		} else {
-			m.addDungeonLog("Ничего интересного не найдено.")
-		}
-	}
+	m.dungeonState = DungeonStateExploring
+	monster := dungeon.GetMonsterForFloor(m.dungeonFloor)
+	m.currentMonster = &monster
+	m.dungeonState = DungeonStateInCombat
+	m.addDungeonLog(fmt.Sprintf("На этаже %d появляется %s!", m.dungeonFloor, m.currentMonster.Name))
 }
 
-func (m *Model) handleCombatAttack() {
-	if m.currentMonster == nil {
+// handleAutoCombatTurn simulates one round of combat.
+func (m *Model) handleAutoCombatTurn() {
+	if m.currentMonster == nil || m.player.HP <= 0 {
 		return
 	}
 
 	// Player attacks monster
-	playerDamage := m.player.Level*2 + rand.Intn(6) // e.g. 2-7 for level 1
+	playerDamage := m.player.Level*2 + rand.Intn(6)
 	m.currentMonster.HP -= playerDamage
 	m.addDungeonLog(fmt.Sprintf("Вы атаковали %s на %d урона.", m.currentMonster.Name, playerDamage))
 
 	if m.currentMonster.HP <= 0 {
-		m.addDungeonLog(fmt.Sprintf("%s побежден!", m.currentMonster.Name))
-		xpGained := m.currentMonster.XPValue
-		goldGained := m.currentMonster.GoldValue
-		m.player.XP += xpGained
-		m.player.Gold += goldGained
-		player.SavePlayer(&m.player)
-		m.addDungeonLog(fmt.Sprintf("Вы получили %d XP и %d золота.", xpGained, goldGained))
-
-		m.currentMonster = nil
-		m.dungeonState = DungeonStateExploring
-		// Check for level up
-		if m.player.XP >= m.player.NextLevelXP {
-			m.state = stateLevelUp // Go to level up screen
-		}
+		m.handleMonsterVictory()
 		return
 	}
 
 	// Monster attacks player
-	monsterDamage := m.currentMonster.Attack - rand.Intn(m.player.Level) // Player level acts as defense
+	monsterDamage := m.currentMonster.Attack - rand.Intn(m.player.Level)
 	if monsterDamage < 0 {
 		monsterDamage = 0
 	}
@@ -100,40 +86,62 @@ func (m *Model) handleCombatAttack() {
 	m.addDungeonLog(fmt.Sprintf("%s атакует вас на %d урона.", m.currentMonster.Name, monsterDamage))
 
 	if m.player.HP <= 0 {
-		m.player.HP = 0
-		m.addDungeonLog("Вы были побеждены... Поход окончен.")
-		m.dungeonState = DungeonStateFinished
+		m.handleDungeonExhaustion()
 	}
-	player.SavePlayer(&m.player)
 }
 
-func (m *Model) handleCombatFlee() {
-	if rand.Intn(100) < 50 { // 50% chance to flee
-		m.addDungeonLog("Вы успешно сбежали.")
-		m.currentMonster = nil
-		m.dungeonState = DungeonStateExploring
-	} else {
-		m.addDungeonLog("Не удалось сбежать!")
-		// Monster gets a free attack
-		monsterDamage := m.currentMonster.Attack - rand.Intn(m.player.Level)
-		if monsterDamage < 0 {
-			monsterDamage = 0
-		}
-		m.player.HP -= monsterDamage
-		m.addDungeonLog(fmt.Sprintf("%s атакует вас на %d урона, пока вы пытались сбежать.", m.currentMonster.Name, monsterDamage))
+// handleMonsterVictory is called when a monster is defeated.
+func (m *Model) handleMonsterVictory() {
+	m.addDungeonLog(fmt.Sprintf("%s побежден!", m.currentMonster.Name))
+	xpGained := m.currentMonster.XPValue
+	goldGained := m.currentMonster.GoldValue
+	m.dungeonRunXP += xpGained
+	m.dungeonRunGold += goldGained
+	m.addDungeonLog(fmt.Sprintf("Получено (в этом забеге): %d XP, %d золота.", xpGained, goldGained))
 
-		if m.player.HP <= 0 {
-			m.player.HP = 0
-			m.addDungeonLog("Вы были побеждены... Поход окончен.")
-			m.dungeonState = DungeonStateFinished
-		}
-		player.SavePlayer(&m.player)
-	}
+	m.currentMonster = nil
+	m.dungeonFloor++
+	m.dungeonState = DungeonStateExploring // Ready for the next monster
+}
+
+// handleDungeonSuccess is called when the timer runs out successfully.
+func (m *Model) handleDungeonSuccess() tea.Model {
+	m.dungeonTicker.Stop()
+	m.dungeonState = DungeonStateFinished
+
+	bonusXP := int(float64(m.dungeonRunXP) * 0.2)
+	bonusGold := int(float64(m.dungeonRunGold) * 0.2)
+	totalXP := m.dungeonRunXP + bonusXP
+	totalGold := m.dungeonRunGold + bonusGold
+
+	m.player.XP += totalXP
+	m.player.Gold += totalGold
+	player.SavePlayer(&m.player)
+
+	m.addDungeonLog("Время вышло! Забег успешен!")
+	m.addDungeonLog(fmt.Sprintf("Награда: %d XP, %d золота.", m.dungeonRunXP, m.dungeonRunGold))
+	m.addDungeonLog(fmt.Sprintf("Бонус: +%d XP, +%d золота.", bonusXP, bonusGold))
+	m.statusMessage = "Успешный забег! Вы получили бонусную награду."
+	return m
+}
+
+// handleDungeonExhaustion is called when the player's HP drops to 0.
+func (m *Model) handleDungeonExhaustion() {
+	m.dungeonTicker.Stop()
+	m.dungeonState = DungeonStateFinished
+	m.player.HP = 0
+
+	m.player.XP += m.dungeonRunXP
+	m.player.Gold += m.dungeonRunGold
+	player.SavePlayer(&m.player)
+
+	m.addDungeonLog("Вы пали без сил... но сохранили добычу.")
+	m.addDungeonLog("Бонус за выносливость не получен.")
+	m.statusMessage = "Вы истощены, но сохранили все, что успели собрать."
 }
 
 func (m *Model) addDungeonLog(message string) {
 	m.dungeonLog = append(m.dungeonLog, message)
-	// Keep the log from getting too long
 	if len(m.dungeonLog) > 10 {
 		m.dungeonLog = m.dungeonLog[1:]
 	}
@@ -142,22 +150,28 @@ func (m *Model) addDungeonLog(message string) {
 func (m *Model) viewDungeon() string {
 	var b strings.Builder
 
-	b.WriteString("⚔️ Данж ⚔️\n\n")
-
-	// Player HP
-	playerHP := fmt.Sprintf("Ваше здоровье: %d / %d", m.player.HP, m.player.MaxHP)
-	b.WriteString(playerHP + "\n\n")
-
-	if m.dungeonState == DungeonStateInCombat && m.currentMonster != nil {
-		// Monster Info
-		monsterArt, ok := dungeon.MonsterArt[m.currentMonster.Name]
-		if !ok {
-			monsterArt = "???"
-		}
-		monsterHP := fmt.Sprintf("%s | Здоровье: %d / %d", m.currentMonster.Name, m.currentMonster.HP, m.currentMonster.MaxHP)
-		monsterBox := lipgloss.JoinHorizontal(lipgloss.Top, monsterArt, monsterHP)
-		b.WriteString(monsterBox + "\n\n")
+	// Timer
+	remaining := m.dungeonSelectedDuration - time.Since(m.dungeonStartTime)
+	if remaining < 0 {
+		remaining = 0
 	}
+	timerStr := fmt.Sprintf("⏳ Осталось: %s", formatDuration(remaining))
+	title := fmt.Sprintf("⚔️ Данж (Этаж %d) ⚔️", m.dungeonFloor)
+	header := fmt.Sprintf("%s\n%s", title, timerStr)
+	b.WriteString(header + "\n\n")
+
+	// Player & Monster Stats
+	playerHP := fmt.Sprintf("Ваше здоровье: %d / %d", m.player.HP, m.player.MaxHP)
+	b.WriteString(playerHP + "\n")
+	if m.dungeonState == DungeonStateInCombat && m.currentMonster != nil {
+		monsterHP := fmt.Sprintf("%s: %d / %d", m.currentMonster.Name, m.currentMonster.HP, m.currentMonster.MaxHP)
+		b.WriteString(monsterHP + "\n")
+	}
+	b.WriteString("\n")
+
+	// Run Stats
+	runStats := fmt.Sprintf("💰 Золото в забеге: %d | ✨ XP в забеге: %d", m.dungeonRunGold, m.dungeonRunXP)
+	b.WriteString(runStats + "\n\n")
 
 	// Log
 	b.WriteString("--- Лог событий ---\n")
@@ -167,18 +181,11 @@ func (m *Model) viewDungeon() string {
 	b.WriteString("------------------\n\n")
 
 	// Actions
-	b.WriteString("--- Действия ---\n")
-	switch m.dungeonState {
-	case DungeonStateExploring:
-		b.WriteString("[e] - Исследовать\n")
-	case DungeonStateInCombat:
-		b.WriteString("[a] - Атаковать\n")
-		b.WriteString("[f] - Сбежать\n")
-	case DungeonStateFinished:
-		b.WriteString("Поход окончен. Нажмите любую клавишу, чтобы выйти.\n")
+	if m.dungeonState == DungeonStateFinished {
+		b.WriteString("Забег окончен. Нажмите 'q', чтобы выйти.\n")
+	} else {
+		b.WriteString("Идет автоматический бой... Нажмите 'q', чтобы сбежать.\n")
 	}
-	b.WriteString("[q] - Покинуть данж\n")
-	b.WriteString("----------------\n")
 
 	return b.String()
 }

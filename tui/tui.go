@@ -4,7 +4,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
 	"magus/dungeon"
 	"magus/player"
 	"magus/rpg"
@@ -14,18 +13,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-)
-
-const (
-	stateHomepage state = iota
-	stateQuests
-	stateCompletedQuests
-	stateAddQuest
-	stateLevelUp
-	stateSkills
-	stateClassChoice
-	stateCreatePlayer
-	stateDungeon
 )
 
 type dungeonState int
@@ -59,9 +46,18 @@ type Model struct {
 	createPlayerInput textinput.Model
 
 	// Dungeon state
-	dungeonState   dungeonState
-	currentMonster *dungeon.Monster
-	dungeonLog     []string
+	dungeonState             dungeonState
+	dungeonFloor             int
+	dungeonRunGold           int
+	dungeonRunXP             int
+	dungeonDurationChoices   []string
+	dungeonDurationCursor    int
+	dungeonSelectedDuration  time.Duration
+	dungeonStartTime         time.Time
+	dungeonTicker            *time.Ticker
+	dungeonCustomDurationInput textinput.Model
+	currentMonster           *dungeon.Monster
+	dungeonLog               []string
 
 	terminalWidth  int
 	terminalHeight int
@@ -76,22 +72,36 @@ func InitialModel() Model {
 		}
 	}
 
+	// Passive HP Regeneration
+	if !p.LastSeen.IsZero() {
+		minutesPassed := time.Since(p.LastSeen).Minutes()
+		hpToRestore := int(minutesPassed / 5)
+		if hpToRestore > 0 {
+			p.HP += hpToRestore
+			if p.HP > p.MaxHP {
+				p.HP = p.MaxHP
+			}
+			player.SavePlayer(p) // Save the updated HP
+		}
+	}
+
 	quests, _ := storage.LoadAllQuests()
 	skills, _ := rpg.LoadAllSkills()
 
 	m := Model{
-		state:                 stateHomepage,
-		player:                *p,
-		quests:                quests,
-		skills:                skills,
-		cursor:                0,
-		statusMessage:         "",
-		progressBar:           progress.New(progress.WithDefaultGradient(), progress.WithWidth(40), progress.WithoutPercentage()),
-		collapsed:             make(map[string]bool),
-		homepageCursor:        0,
-		addQuestTypes:         []player.QuestType{player.Daily, player.Arc, player.Meta, player.Epic, player.Chore},
-		addQuestTypeIdx:       0,
-		dungeonDurationInputs: newDungeonDurationInputs(),
+		state:                      stateHomepage,
+		player:                     *p,
+		quests:                     quests,
+		skills:                     skills,
+		cursor:                     0,
+		statusMessage:              "",
+		progressBar:                progress.New(progress.WithDefaultGradient(), progress.WithWidth(40), progress.WithoutPercentage()),
+		collapsed:                  make(map[string]bool),
+		homepageCursor:             0,
+		addQuestTypes:              []player.QuestType{player.Daily, player.Arc, player.Meta, player.Epic, player.Chore},
+		addQuestTypeIdx:            0,
+		dungeonDurationChoices:     []string{"15", "25", "45", "Custom"},
+		dungeonCustomDurationInput: textinput.New(),
 	}
 
 	m.sortAndBuildDisplayQuests()
@@ -165,13 +175,19 @@ func (m *Model) sortAndBuildDisplayQuests() {
 	m.displayQuests = displayQuests
 }
 
-type dungeonTickMsg struct{}
-
-func (m Model) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Handle dungeon ticks globally to ensure they are always processed
+	// when the dungeon is running.
+	if m.state == stateDungeon {
+		if tick, ok := msg.(dungeonTickMsg); ok {
+			return m.updateDungeon(tick)
+		}
+	}
+
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -184,10 +200,18 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 		if key == "q" {
-			if m.state == stateDungeonRun {
-				m.dungeonResult.Completed = true
-				m.statusMessage = "Вы сбежали из данжа."
+			// Universal quit from most states
+			if m.state == stateDungeon || m.state == stateQuests || m.state == stateCompletedQuests || m.state == stateSkills || m.state == stateClassChoice {
+				if m.state == stateDungeon && m.dungeonTicker != nil {
+					m.dungeonTicker.Stop()
+				}
 				m.state = stateHomepage
+				if m.state == stateDungeon {
+					m.statusMessage = "Вы сбежали из данжа."
+				} else {
+					m.statusMessage = ""
+				}
+				m.cursor = 0
 				return m, nil
 			}
 			if m.state == stateHomepage || m.state == stateCreatePlayer {
@@ -195,13 +219,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if m.state == stateAddQuest {
 				m.addQuestInputs = nil
+				m.state = stateHomepage
+				m.statusMessage = ""
+				m.cursor = 0
+				return m, nil
 			}
-			m.state = stateHomepage
-			m.statusMessage = ""
-			m.cursor = 0
-			return m, nil
 		}
-		if key == "a" && m.state != stateAddQuest && m.state != stateLevelUp && m.state != stateClassChoice && m.state != stateCreatePlayer {
+		if key == "a" && m.state == stateHomepage {
 			m.state = stateAddQuest
 			m.addQuestCursor = 0
 			m.addQuestTypeIdx = 0
@@ -229,8 +253,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateCreatePlayer(msg)
 	case stateDungeonPrep:
 		return m.updateDungeonPrep(msg)
-	case stateDungeonRun:
-		return m.updateDungeonRun(msg)
+	case stateDungeon:
+		return m.updateDungeon(msg)
 	}
 
 	return m, cmd
@@ -258,8 +282,8 @@ func (m *Model) View() string {
 		s.WriteString(m.viewCreatePlayer())
 	case stateDungeonPrep:
 		s.WriteString(m.viewDungeonPrep())
-	case stateDungeonRun:
-		s.WriteString(m.viewDungeonRun())
+	case stateDungeon:
+		s.WriteString(m.viewDungeon())
 	default:
 		s.WriteString("Неизвестное состояние")
 	}
@@ -274,10 +298,8 @@ func (m *Model) View() string {
 		navText = "Навигация: ↑/↓, ←/→, Enter, 'q' - отмена."
 	case stateSkills:
 		navText = "Нажмите 'enter' для улучшения, 'q' - назад."
-	case stateDungeonPrep:
-		navText = "Навигация: ←/→, Enter для начала, 'q' - назад."
-	case stateDungeonRun:
-		if m.dungeonResult.Completed {
+	case stateDungeon:
+		if m.dungeonState == DungeonStateFinished {
 			navText = "Нажмите любую клавишу для возврата."
 		} else {
 			navText = "Поход в процессе... 'q' - сбежать."

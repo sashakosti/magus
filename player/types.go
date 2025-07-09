@@ -30,6 +30,7 @@ type Player struct {
 		QuestsCompleted int `json:"quests_completed"`
 		XPGained        int `json:"xp_gained"`
 	} `json:"history"`
+	LastSeen time.Time `json:"last_seen,omitempty"`
 }
 
 type Stats struct {

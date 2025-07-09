@@ -32,7 +32,8 @@ func (m *Model) updateHomepage(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = stateSkills
 			case 3:
 				m.state = stateDungeonPrep
-				m.dungeonDurationInputs[0].Focus()
+				m.dungeonDurationCursor = 0
+				m.statusMessage = ""
 			case 4:
 				return m, tea.Quit
 			}

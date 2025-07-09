@@ -59,9 +59,25 @@ func (m *Model) updateQuests(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.sortAndBuildDisplayQuests()
 
 			if xpGained > 0 {
+				hpHealed := 0
+				if quest.Type == player.Chore {
+					hpHealed = xpGained / 2
+					m.player.HP += hpHealed
+					if m.player.HP > m.player.MaxHP {
+						m.player.HP = m.player.MaxHP
+					}
+				}
+
 				canLevelUp, _ := player.AddXP(xpGained)
 				p, _ := player.LoadPlayer()
 				m.player = *p
+
+				if hpHealed > 0 {
+					m.statusMessage = fmt.Sprintf("Квест '%s' выполнен! +%d XP, +%d HP", quest.Title, xpGained, hpHealed)
+				} else {
+					m.statusMessage = fmt.Sprintf("Квест '%s' выполнен! +%d XP", quest.Title, xpGained)
+				}
+
 				if canLevelUp {
 					perkChoices, _ := rpg.GetPerkChoices(&m.player)
 					if len(perkChoices) > 0 {
@@ -75,10 +91,11 @@ func (m *Model) updateQuests(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					m.cursor = 0
 				}
+			} else {
+				p, _ := player.LoadPlayer()
+				m.player = *p
+				m.statusMessage = fmt.Sprintf("Квест '%s' выполнен!", quest.Title)
 			}
-			p, _ := player.LoadPlayer()
-			m.player = *p
-			m.statusMessage = fmt.Sprintf("Квест '%s' выполнен! +%d XP", quest.Title, xpGained)
 		}
 	}
 	return m, nil

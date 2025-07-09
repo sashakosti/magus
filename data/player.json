@@ -2,9 +2,11 @@
   "name": "Dude",
   "class": "Маг",
   "level": 3,
-  "xp": 420,
+  "hp": 0,
+  "max_hp": 100,
+  "xp": 779,
   "next_level_xp": 900,
-  "gold": 1,
+  "gold": 24,
   "mana": 0,
   "max_mana": 0,
   "perks": [
@@ -18,7 +20,8 @@
   },
   "last_completed_at": "0001-01-01T00:00:00Z",
   "history": {
-    "quests_completed": 20,
-    "xp_gained": 920
-  }
+    "quests_completed": 26,
+    "xp_gained": 1245
+  },
+  "last_seen": "2025-07-09T17:21:49.613439+03:00"
 }
