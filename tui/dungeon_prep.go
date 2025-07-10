@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -10,89 +11,119 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+var (
+	// Regex to validate HHMMSS format
+	timeInputRegex = regexp.MustCompile(`^\d{0,6}$`)
+
+	// Styles for the timer input
+	timerStyle      = lipgloss.NewStyle().Width(10).Align(lipgloss.Center)
+	focusedTimerStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder(), true).
+				BorderForeground(lipgloss.Color("205")).
+				Padding(0, 1)
+	unfocusedTimerStyle = lipgloss.NewStyle().
+				Border(lipgloss.HiddenBorder(), true).
+				Padding(0, 1)
+	placeholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+)
+
 func (m *Model) updateDungeonPrep(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	if key, ok := msg.(tea.KeyMsg); ok {
-		isCustomSelected := m.dungeonDurationChoices[m.dungeonDurationCursor] == "Custom"
-
-		if isCustomSelected && m.dungeonCustomDurationInput.Focused() {
-			if key.String() == "enter" {
-				minutes, err := strconv.Atoi(m.dungeonCustomDurationInput.Value())
-				if err == nil && minutes > 0 {
-					m.dungeonSelectedDuration = time.Duration(minutes) * time.Minute
-					return m.startDungeonRun()
-				}
-			}
-			m.dungeonCustomDurationInput, cmd = m.dungeonCustomDurationInput.Update(msg)
-			return m, cmd
-		}
-
 		switch key.String() {
-		case "up", "k":
-			if m.dungeonDurationCursor > 0 {
-				m.dungeonDurationCursor--
-			}
-		case "down", "j":
-			if m.dungeonDurationCursor < len(m.dungeonDurationChoices)-1 {
-				m.dungeonDurationCursor++
-			}
 		case "enter":
-			if isCustomSelected {
-				m.dungeonCustomDurationInput.Focus()
-				m.dungeonCustomDurationInput.Placeholder = "Введите минуты..."
-				return m, nil
+			duration, err := parseDungeonDuration(m.dungeonCustomDurationInput.Value())
+			if err == nil && duration > 0 {
+				m.dungeonSelectedDuration = duration
+				return m.startDungeonRun()
 			}
-			minutes, _ := strconv.Atoi(m.dungeonDurationChoices[m.dungeonDurationCursor])
-			m.dungeonSelectedDuration = time.Duration(minutes) * time.Minute
-			return m.startDungeonRun()
+			m.statusMessage = "Неверный формат времени. Введите до 6 цифр."
+
+		case "backspace":
+			if len(m.dungeonCustomDurationInput.Value()) > 0 {
+				m.dungeonCustomDurationInput.SetValue(m.dungeonCustomDurationInput.Value()[:len(m.dungeonCustomDurationInput.Value())-1])
+			}
+		default:
+			newVal := m.dungeonCustomDurationInput.Value() + key.String()
+			if timeInputRegex.MatchString(newVal) {
+				m.dungeonCustomDurationInput.SetValue(newVal)
+			}
 		}
 	}
 
-	return m, nil
+	m.dungeonCustomDurationInput, cmd = m.dungeonCustomDurationInput.Update(msg)
+	return m, cmd
 }
 
 func (m *Model) viewDungeonPrep() string {
 	var b strings.Builder
-	b.WriteString("⏳ Сколько времени вы хотите сфокусироваться?\n\n")
 
-	for i, choice := range m.dungeonDurationChoices {
-		cursor := " "
-		if m.dungeonDurationCursor == i {
-			cursor = ">"
+	title := "⏳ Сколько времени вы хотите сфокусироваться?"
+	b.WriteString(lipgloss.PlaceHorizontal(m.terminalWidth, lipgloss.Center, title))
+	b.WriteString("\n\n")
+
+	inputVal := m.dungeonCustomDurationInput.Value()
+	placeholder := "000000"
+	displayVal := ""
+
+	paddedVal := fmt.Sprintf("%-6s", inputVal)
+	for i := 0; i < 6; i++ {
+		if i > 0 && i%2 == 0 {
+			displayVal += ":"
 		}
-		line := fmt.Sprintf("%s %s минут", cursor, choice)
-		if choice == "Custom" {
-			line = fmt.Sprintf("%s %s", cursor, choice)
+		if i < len(inputVal) {
+			displayVal += string(paddedVal[i])
+		} else {
+			displayVal += placeholderStyle.Render(string(placeholder[i]))
 		}
-		b.WriteString(line + "\n")
 	}
 
-	if m.dungeonDurationChoices[m.dungeonDurationCursor] == "Custom" {
-		b.WriteString("\n" + m.dungeonCustomDurationInput.View())
+	timerView := timerStyle.Render(displayVal)
+	containerStyle := focusedTimerStyle
+	if !m.dungeonCustomDurationInput.Focused() {
+		containerStyle = unfocusedTimerStyle
 	}
 
-	b.WriteString("\n\nНавигация: ↑/↓, Enter для выбора, 'q' - назад.")
-	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), true).Padding(2).Render(b.String())
+	b.WriteString(lipgloss.PlaceHorizontal(m.terminalWidth, lipgloss.Center, containerStyle.Render(timerView)))
+	b.WriteString("\n\n")
+
+	help := "(Введите 6 цифр для ЧЧ:ММ:СС и нажмите Enter)"
+	b.WriteString(lipgloss.PlaceHorizontal(m.terminalWidth, lipgloss.Center, placeholderStyle.Render(help)))
+
+	return docStyle.Render(b.String())
 }
 
-// startDungeonRun initializes the dungeon state and starts the ticker.
 func (m *Model) startDungeonRun() (tea.Model, tea.Cmd) {
 	m.state = stateDungeon
 	m.dungeonFloor = 1
 	m.dungeonRunXP = 0
 	m.dungeonRunGold = 0
-	m.dungeonLog = []string{fmt.Sprintf("Забег начался! Длительность: %v.", m.dungeonSelectedDuration)}
+	m.dungeonLog = []string{fmt.Sprintf("Забег начался! Длительность: %s.", formatDuration(m.dungeonSelectedDuration))}
 	m.dungeonState = DungeonStateExploring
 	m.currentMonster = nil
 	m.dungeonStartTime = time.Now()
-	m.dungeonTicker = time.NewTicker(2 * time.Second) // Game tick every 2 seconds
+	m.dungeonTicker = time.NewTicker(2 * time.Second)
 
-	// Immediately start the first exploration
-	m.handleExplore()
-
-	// Return a command to listen for ticks
 	return m, func() tea.Msg {
-		return <-m.dungeonTicker.C
+		return dungeonTickMsg(<-m.dungeonTicker.C)
 	}
 }
+
+func parseDungeonDuration(s string) (time.Duration, error) {
+	if s == "" {
+		return 0, fmt.Errorf("пустая строка")
+	}
+
+	// Pad with leading zeros to 6 digits
+	padded := fmt.Sprintf("%06s", s)
+
+	h, _ := strconv.Atoi(padded[0:2])
+	m, _ := strconv.Atoi(padded[2:4])
+	sec, _ := strconv.Atoi(padded[4:6])
+
+	return time.Hour*time.Duration(h) +
+		time.Minute*time.Duration(m) +
+		time.Second*time.Duration(sec), nil
+}
+

@@ -11,6 +11,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -45,13 +46,22 @@ type Model struct {
 	addQuestTypeIdx int
 	createPlayerInput textinput.Model
 
+	// Quest view
+	viewport          viewport.Model
+	questFilters      []string
+	questFilterCursor int
+	activeQuestFilter string
+
+	// Tag management
+	allTags        []string
+	tagCursor      int
+	renameTagInput textinput.Model
+
 	// Dungeon state
 	dungeonState             dungeonState
 	dungeonFloor             int
 	dungeonRunGold           int
 	dungeonRunXP             int
-	dungeonDurationChoices   []string
-	dungeonDurationCursor    int
 	dungeonSelectedDuration  time.Duration
 	dungeonStartTime         time.Time
 	dungeonTicker            *time.Ticker
@@ -88,6 +98,8 @@ func InitialModel() Model {
 	quests, _ := storage.LoadAllQuests()
 	skills, _ := rpg.LoadAllSkills()
 
+	vp := viewport.New(100, 20) // Initial size, will be updated
+
 	m := Model{
 		state:                      stateHomepage,
 		player:                     *p,
@@ -100,10 +112,13 @@ func InitialModel() Model {
 		homepageCursor:             0,
 		addQuestTypes:              []player.QuestType{player.Daily, player.Arc, player.Meta, player.Epic, player.Chore},
 		addQuestTypeIdx:            0,
-		dungeonDurationChoices:     []string{"15", "25", "45", "Custom"},
 		dungeonCustomDurationInput: textinput.New(),
+		activeQuestFilter:          "Все",
+		viewport:                   vp,
+		renameTagInput:             textinput.New(),
 	}
 
+	m.buildQuestFilters()
 	m.sortAndBuildDisplayQuests()
 
 	if p.Level >= 3 && p.Class == player.ClassNone {
@@ -130,10 +145,90 @@ func InitialModel() Model {
 	return m
 }
 
+func (m *Model) buildQuestFilters() {
+	filters := []string{"Все", "Daily", "Chore", "Quest"}
+	tagSet := make(map[string]bool)
+	for _, q := range m.quests {
+		for _, tag := range q.Tags {
+			if !tagSet[tag] {
+				tagSet[tag] = true
+			}
+		}
+	}
+
+	var tags []string
+	for tag := range tagSet {
+		tags = append(tags, tag)
+	}
+	sort.Strings(tags)
+	m.allTags = tags // Save for management screen
+
+	for _, tag := range tags {
+		filters = append(filters, "#"+tag)
+	}
+
+	filters = append(filters, "---", "[Управление тегами]")
+	m.questFilters = filters
+}
+
+
 func (m *Model) sortAndBuildDisplayQuests() {
-	sort.SliceStable(m.quests, func(i, j int) bool {
-		d1 := m.quests[i].Deadline
-		d2 := m.quests[j].Deadline
+	// 1. Filter quests based on the active filter
+	var filteredQuests []player.Quest
+	if m.activeQuestFilter == "Все" {
+		for _, q := range m.quests {
+			// Show all non-completed, or daily/chore quests
+			if !q.Completed || q.Type == player.Daily || q.Type == player.Chore {
+				filteredQuests = append(filteredQuests, q)
+			}
+		}
+	} else if m.activeQuestFilter == "Daily" {
+		for _, q := range m.quests {
+			if q.Type == player.Daily {
+				filteredQuests = append(filteredQuests, q)
+			}
+		}
+	} else if m.activeQuestFilter == "Chore" {
+		for _, q := range m.quests {
+			if q.Type == player.Chore {
+				filteredQuests = append(filteredQuests, q)
+			}
+		}
+	} else if m.activeQuestFilter == "Quest" {
+		for _, q := range m.quests {
+			if (q.Type == player.Arc || q.Type == player.Meta || q.Type == player.Epic) && !q.Completed {
+				filteredQuests = append(filteredQuests, q)
+			}
+		}
+	} else if strings.HasPrefix(m.activeQuestFilter, "#") {
+		tag := strings.TrimPrefix(m.activeQuestFilter, "#")
+		for _, q := range m.quests {
+			if !q.Completed || q.Type == player.Daily || q.Type == player.Chore {
+				for _, t := range q.Tags {
+					if t == tag {
+						filteredQuests = append(filteredQuests, q)
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// 2. Sort the filtered quests
+	sort.SliceStable(filteredQuests, func(i, j int) bool {
+		// Completed daily quests go to the bottom
+		iCompleted := filteredQuests[i].Type == player.Daily && isToday(filteredQuests[i].CompletedAt)
+		jCompleted := filteredQuests[j].Type == player.Daily && isToday(filteredQuests[j].CompletedAt)
+		if iCompleted && !jCompleted {
+			return false
+		}
+		if !iCompleted && jCompleted {
+			return true
+		}
+
+		// Then sort by deadline
+		d1 := filteredQuests[i].Deadline
+		d2 := filteredQuests[j].Deadline
 		if d1 != nil && d2 != nil {
 			return d1.Before(*d2)
 		}
@@ -143,25 +238,20 @@ func (m *Model) sortAndBuildDisplayQuests() {
 		if d1 == nil && d2 != nil {
 			return false
 		}
-		return m.quests[i].CreatedAt.After(m.quests[j].CreatedAt)
+		// Finally, by creation time
+		return filteredQuests[i].CreatedAt.After(filteredQuests[j].CreatedAt)
 	})
 
-	activeQuests := []player.Quest{}
-	for _, q := range m.quests {
-		if !q.Completed || q.Type == player.Daily {
-			activeQuests = append(activeQuests, q)
-		}
-	}
-
+	// 3. Build the hierarchical display list
 	subQuests := make(map[string][]player.Quest)
-	for _, q := range activeQuests {
+	for _, q := range filteredQuests {
 		if q.ParentID != "" {
 			subQuests[q.ParentID] = append(subQuests[q.ParentID], q)
 		}
 	}
 
 	displayQuests := []player.Quest{}
-	for _, q := range activeQuests {
+	for _, q := range filteredQuests {
 		if q.ParentID != "" {
 			continue
 		}
@@ -180,8 +270,7 @@ func (m *Model) Init() tea.Cmd {
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Handle dungeon ticks globally to ensure they are always processed
-	// when the dungeon is running.
+	// Handle dungeon ticks globally
 	if m.state == stateDungeon {
 		if tick, ok := msg.(dungeonTickMsg); ok {
 			return m.updateDungeon(tick)
@@ -199,9 +288,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key == "ctrl+c" {
 			return m, tea.Quit
 		}
+		// Universal quit from most states
 		if key == "q" {
-			// Universal quit from most states
-			if m.state == stateDungeon || m.state == stateQuests || m.state == stateCompletedQuests || m.state == stateSkills || m.state == stateClassChoice {
+			if m.state == stateDungeon || m.state == stateQuests || m.state == stateQuestsFilter || m.state == stateCompletedQuests || m.state == stateSkills || m.state == stateClassChoice {
 				if m.state == stateDungeon && m.dungeonTicker != nil {
 					m.dungeonTicker.Stop()
 				}
@@ -225,7 +314,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		}
-		if key == "a" && m.state == stateHomepage {
+		if key == "a" && (m.state == stateHomepage || m.state == stateQuests || m.state == stateQuestsFilter) {
 			m.state = stateAddQuest
 			m.addQuestCursor = 0
 			m.addQuestTypeIdx = 0
@@ -237,8 +326,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.state {
 	case stateHomepage:
 		return m.updateHomepage(msg)
-	case stateQuests:
+	case stateQuests, stateQuestsFilter:
 		return m.updateQuests(msg)
+	case stateManageTags:
+		return m.updateManageTags(msg)
 	case stateCompletedQuests:
 		return m.updateCompletedQuests(msg)
 	case stateAddQuest:
@@ -266,8 +357,10 @@ func (m *Model) View() string {
 	switch m.state {
 	case stateHomepage:
 		s.WriteString(m.viewHomepage())
-	case stateQuests:
+	case stateQuests, stateQuestsFilter:
 		s.WriteString(m.viewQuests())
+	case stateManageTags:
+		s.WriteString(m.viewManageTags())
 	case stateCompletedQuests:
 		s.WriteString(m.viewCompletedQuests())
 	case stateAddQuest:
@@ -292,10 +385,14 @@ func (m *Model) View() string {
 	switch m.state {
 	case stateHomepage:
 		navText = "Навигация: ↑/↓, Enter, 'a' - добавить, 'q' - выход."
+	case stateQuestsFilter:
+		navText = "Фильтры: ↑/↓, Enter/→ - выбрать, 'a' - добавить, 'q' - назад."
 	case stateQuests:
-		navText = "Навигация: ↑/↓, Enter, [Пробел], 'a' - добавить, 'q' - назад."
+		navText = "Квесты: ↑/↓, Enter, [Пробел], ← - к фильтрам, 'a' - добавить, 'q' - назад."
+	case stateManageTags:
+		navText = "Теги: ↑/↓, 'd' - удалить, 'r' - переименовать, 'q' - назад."
 	case stateAddQuest:
-		navText = "Навигация: ↑/↓, ←/→, Enter, 'q' - отмена."
+		navText = "Навигаци��: ↑/↓, ←/→, Enter, 'q' - отмена."
 	case stateSkills:
 		navText = "Нажмите 'enter' для улучшения, 'q' - назад."
 	case stateDungeon:

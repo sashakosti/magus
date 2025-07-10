@@ -5,6 +5,7 @@ type state int
 const (
 	stateHomepage state = iota
 	stateQuests
+	stateQuestsFilter
 	stateCompletedQuests
 	stateAddQuest
 	stateLevelUp
@@ -13,4 +14,5 @@ const (
 	stateCreatePlayer
 	stateDungeonPrep
 	stateDungeon
+	stateManageTags
 )
