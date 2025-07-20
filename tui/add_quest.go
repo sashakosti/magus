@@ -16,19 +16,21 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func newAddQuestInputs() []textinput.Model {
-	inputs := make([]textinput.Model, 5)
-	for i := range inputs {
-		inputs[i] = textinput.New()
-		inputs[i].CharLimit = 120
+func (m *Model) initAddQuest() {
+	m.addQuestCursor = 0
+	m.addQuestTypeIdx = 0
+	m.addQuestInputs = make([]textinput.Model, 5)
+	for i := range m.addQuestInputs {
+		m.addQuestInputs[i] = textinput.New()
+		m.addQuestInputs[i].CursorStyle = cursorStyle
+		m.addQuestInputs[i].CharLimit = 120
 	}
-	inputs[0].Placeholder = "Название квеста"
-	inputs[1].Placeholder = "10"
-	inputs[2].Placeholder = "работа,дом"
-	inputs[3].Placeholder = "ГГГГ-ММ-ДД"
-	inputs[4].Placeholder = "ID родителя (опционально)"
-	inputs[0].Focus()
-	return inputs
+	m.addQuestInputs[0].Placeholder = "Название квеста"
+	m.addQuestInputs[1].Placeholder = "10"
+	m.addQuestInputs[2].Placeholder = "работа,дом"
+	m.addQuestInputs[3].Placeholder = "ГГГГ-ММ-ДД"
+	m.addQuestInputs[4].Placeholder = "ID родителя (опционально)"
+	m.addQuestInputs[0].Focus()
 }
 
 func (m *Model) updateAddQuest(msg tea.Msg) (tea.Model, tea.Cmd) {

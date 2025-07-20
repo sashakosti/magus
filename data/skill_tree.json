@@ -1,0 +1,166 @@
+[
+  {
+    "id": "hp_1",
+    "name": "+10% Здоровья",
+    "icon": "❤️",
+    "description": "Увеличивает максимальное здоровье на 10%.",
+    "type": "STAT",
+    "position": { "x": 5, "y": 0 },
+    "requirements": [],
+    "effects": { "HP_MOD": 0.1 }
+  },
+  {
+    "id": "stamina_1",
+    "name": "+10% Выносливости",
+    "icon": "🏃",
+    "description": "Увеличивает максимальную выносливость на 10%.",
+    "type": "STAT",
+    "position": { "x": 10, "y": 0 },
+    "requirements": [],
+    "effects": { "STAMINA_MOD": 0.1 }
+  },
+  {
+    "id": "mage_apprentice",
+    "name": "Ученик мага",
+    "icon": "🎓",
+    "description": "Открывает доступ к базовым заклинаниям.",
+    "type": "PASSIVE",
+    "class_requirement": "Маг",
+    "position": { "x": 25, "y": 0 },
+    "requirements": []
+  },
+  {
+    "id": "fireball",
+    "name": "Огненный шар",
+    "icon": "🔥",
+    "description": "Базовое огненное заклинание.",
+    "type": "ACTIVE",
+    "class_requirement": "Маг",
+    "position": { "x": 20, "y": 3 },
+    "requirements": ["mage_apprentice"]
+  },
+  {
+    "id": "ice_arrow",
+    "name": "Ледяная стрела",
+    "icon": "❄️",
+    "description": "Замедляет врагов.",
+    "type": "ACTIVE",
+    "class_requirement": "Маг",
+    "position": { "x": 30, "y": 3 },
+    "requirements": ["mage_apprentice"]
+  },
+  {
+    "id": "fire_damage_1",
+    "name": "+5% урона огнем",
+    "icon": "✨",
+    "description": "Увеличивает урон от огненных заклинаний.",
+    "type": "STAT",
+    "class_requirement": "Маг",
+    "position": { "x": 20, "y": 6 },
+    "requirements": ["fireball", "level_2"],
+    "effects": { "FIRE_DAMAGE_MOD": 0.05 }
+  },
+  {
+    "id": "pyromancer",
+    "name": "Пиромант",
+    "icon": "☄️",
+    "description": "Мастер огня. Открывает ультимативное заклинание.",
+    "type": "PASSIVE",
+    "class_requirement": "Маг",
+    "position": { "x": 20, "y": 9 },
+    "requirements": ["fire_damage_1", "level_5"]
+  },
+  {
+    "id": "deep_freeze",
+    "name": "Глубокая заморозка",
+    "icon": "🧊",
+    "description": "Усиливает Ледяную стрелу, давая шанс заморозить врага.",
+    "type": "ACTIVE",
+    "class_requirement": "Маг",
+    "position": { "x": 30, "y": 6 },
+    "requirements": ["ice_arrow", "level_2"]
+  },
+  {
+    "id": "warrior_initiate",
+    "name": "Посвященный воин",
+    "icon": "⚔️",
+    "description": "Открывает доступ к боевым стойкам и маневрам.",
+    "type": "PASSIVE",
+    "class_requirement": "Воин",
+    "position": { "x": 45, "y": 0 },
+    "requirements": []
+  },
+  {
+    "id": "power_strike",
+    "name": "Мощный удар",
+    "icon": "💥",
+    "description": "Сильный удар, который может оглушить цель.",
+    "type": "ACTIVE",
+    "class_requirement": "Воин",
+    "position": { "x": 40, "y": 3 },
+    "requirements": ["warrior_initiate"]
+  },
+  {
+    "id": "defensive_stance",
+    "name": "Защитная стойка",
+    "icon": "🛡️",
+    "description": "Увеличивает защиту, но снижает скорость.",
+    "type": "PASSIVE",
+    "class_requirement": "Воин",
+    "position": { "x": 50, "y": 3 },
+    "requirements": ["warrior_initiate"]
+  },
+  {
+    "id": "armor_penetration",
+    "name": "Пробитие брони",
+    "icon": "🎯",
+    "description": "Атаки игнорируют часть брони противника.",
+    "type": "STAT",
+    "class_requirement": "Воин",
+    "position": { "x": 40, "y": 6 },
+    "requirements": ["power_strike", "level_3"],
+    "effects": { "ARMOR_PEN_MOD": 0.15 }
+  },
+  {
+    "id": "rogue_adept",
+    "name": "Адепт-разбойник",
+    "icon": "💨",
+    "description": "Открывает доступ к теневым техникам.",
+    "type": "PASSIVE",
+    "class_requirement": "Разбойник",
+    "position": { "x": 65, "y": 0 },
+    "requirements": []
+  },
+  {
+    "id": "poison_blade",
+    "name": "Отравленный клинок",
+    "icon": "☠️",
+    "description": "Атаки могут отравить цель, нанося урон со временем.",
+    "type": "ACTIVE",
+    "class_requirement": "Разбойник",
+    "position": { "x": 60, "y": 3 },
+    "requirements": ["rogue_adept"]
+  },
+  {
+    "id": "evasion",
+    "name": "Уклонение",
+    "icon": "🍃",
+    "description": "Пассивно увеличивает шанс уклониться от атаки.",
+    "type": "STAT",
+    "class_requirement": "Разбойник",
+    "position": { "x": 70, "y": 3 },
+    "requirements": ["rogue_adept"],
+    "effects": { "EVASION_CHANCE": 0.05 }
+  },
+  {
+    "id": "crit_damage_1",
+    "name": "+15% крит. урона",
+    "icon": "💥",
+    "description": "Увеличивает урон от критических ударов.",
+    "type": "STAT",
+    "class_requirement": "Разбойник",
+    "position": { "x": 60, "y": 6 },
+    "requirements": ["poison_blade", "level_4"],
+    "effects": { "CRIT_DAMAGE_MOD": 0.15 }
+  }
+]

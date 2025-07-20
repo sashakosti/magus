@@ -13,11 +13,24 @@ func isToday(t time.Time) bool {
 	return t.Year() == now.Year() && t.Month() == now.Month() && t.Day() == now.Day()
 }
 
+func isYesterday(t, now time.Time) bool {
+	yesterday := now.AddDate(0, 0, -1)
+	return t.Year() == yesterday.Year() && t.Month() == yesterday.Month() && t.Day() == yesterday.Day()
+}
+
+
 func interpolate(a, b uint8, t float64) uint8 {
 	return uint8(float64(a) + t*(float64(b)-float64(a)))
 }
 
-func max(a, b int) int {
+func Min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func Max(a, b int) int {
 	if a > b {
 		return a
 	}
@@ -30,7 +43,7 @@ func ansiGradient(text string, startRGB, endRGB [3]uint8) string {
 	var builder strings.Builder
 
 	for i, line := range lines {
-		t := float64(i) / float64(max(n-1, 1))
+		t := float64(i) / float64(Max(n-1, 1))
 		r := interpolate(startRGB[0], endRGB[0], t)
 		g := interpolate(startRGB[1], endRGB[1], t)
 		b := interpolate(startRGB[2], endRGB[2], t)

@@ -7,16 +7,16 @@ import (
 	"os"
 )
 
-const questsFile = "data/quests.json"
+var QuestFile = "data/quests.json"
 
 // LoadAllQuests загружает все квесты из файла.
 func LoadAllQuests() ([]player.Quest, error) {
-	if _, err := os.Stat(questsFile); os.IsNotExist(err) {
+	if _, err := os.Stat(QuestFile); os.IsNotExist(err) {
 		// Если файл не существует, возвращаем пустой список
 		return []player.Quest{}, nil
 	}
 
-	file, err := ioutil.ReadFile(questsFile)
+	file, err := ioutil.ReadFile(QuestFile)
 	if err != nil {
 		return nil, err
 	}
@@ -41,5 +41,5 @@ func SaveAllQuests(quests []player.Quest) error {
 		os.Mkdir("data", 0755)
 	}
 
-	return ioutil.WriteFile(questsFile, data, 0644)
+	return ioutil.WriteFile(QuestFile, data, 0644)
 }

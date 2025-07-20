@@ -2,18 +2,15 @@
   "name": "Dude",
   "class": "Маг",
   "level": 4,
-  "hp": 2,
+  "hp": 100,
   "max_hp": 100,
-  "xp": 149,
+  "xp": 414,
   "next_level_xp": 1600,
   "gold": 24,
   "mana": 0,
   "max_mana": 0,
-  "perks": [
-    "Фокус",
-    "Второе дыхание"
-  ],
-  "skill_points": 0,
+  "unlocked_skills": null,
+  "skill_points": 2,
   "skills": {
     "Дисциплина": 5,
     "Живучесть": 5,
@@ -27,8 +24,8 @@
   },
   "last_completed_at": "0001-01-01T00:00:00Z",
   "history": {
-    "quests_completed": 31,
-    "xp_gained": 1515
+    "quests_completed": 38,
+    "xp_gained": 1780
   },
-  "last_seen": "2025-07-10T19:38:11.486355+03:00"
+  "last_seen": "2025-07-20T22:35:49.165205+03:00"
 }

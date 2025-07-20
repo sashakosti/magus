@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const playerFile = "data/player.json"
+var PlayerFile = "data/player.json"
 
 var ErrPlayerNotFound = errors.New("player file not found")
 
@@ -49,10 +49,6 @@ func LevelUpPlayer(chosenPerkName string) error {
 	p.NextLevelXP = calculateNextLevelXP(p.Level)
 	p.SkillPoints += 10 // Начисляем 10 очков навыков за уровень
 
-	if chosenPerkName != "" {
-		p.Perks = append(p.Perks, chosenPerkName)
-	}
-
 	return SavePlayer(p)
 }
 
@@ -79,11 +75,11 @@ func CreatePlayer(name string) (*Player, error) {
 
 // LoadPlayer загружает данные игрока из файла.
 func LoadPlayer() (*Player, error) {
-	if _, err := os.Stat(playerFile); os.IsNotExist(err) {
+	if _, err := os.Stat(PlayerFile); os.IsNotExist(err) {
 		return nil, ErrPlayerNotFound
 	}
 
-	file, err := ioutil.ReadFile(playerFile)
+	file, err := ioutil.ReadFile(PlayerFile)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +114,7 @@ func SavePlayer(p *Player) error {
 	if _, err := os.Stat("data"); os.IsNotExist(err) {
 		os.Mkdir("data", 0755)
 	}
-	return ioutil.WriteFile(playerFile, data, 0644)
+	return ioutil.WriteFile(PlayerFile, data, 0644)
 }
 
 // calculateNextLevelXP определяет, сколько опыта нужно для следующего уровня.

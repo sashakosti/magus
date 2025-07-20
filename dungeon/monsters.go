@@ -2,7 +2,6 @@ package dungeon
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 )
 
@@ -35,9 +34,9 @@ var Bosses = []Monster{
 func getScaledMonster(baseMonster Monster, floor int) Monster {
 	monster := baseMonster
 
-	// Exponential scaling factor. The difficulty ramps up quickly.
-	// e.g., floor 1: 1.0, floor 2: 1.3, floor 3: 1.69, etc.
-	scaleFactor := math.Pow(1.3, float64(floor-1))
+	// Linear scaling factor. The difficulty ramps up steadily.
+	// e.g., floor 1: 1.0, floor 2: 1.15, floor 3: 1.30, etc.
+	scaleFactor := 1.0 + 0.15*float64(floor-1)
 
 	monster.HP = int(float64(baseMonster.HP) * scaleFactor)
 	monster.MaxHP = int(float64(baseMonster.MaxHP) * scaleFactor)

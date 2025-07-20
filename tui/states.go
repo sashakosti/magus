@@ -15,4 +15,6 @@ const (
 	stateDungeonPrep
 	stateDungeon
 	stateManageTags
+	stateQuestEdit
+	statePerks
 )

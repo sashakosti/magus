@@ -17,7 +17,7 @@ func isToday(t time.Time) bool {
 }
 
 func hasPerk(p *player.Player, perkName string) bool {
-	for _, ownedPerk := range p.Perks {
+	for _, ownedPerk := range p.UnlockedSkills {
 		if ownedPerk == perkName {
 			return true
 		}

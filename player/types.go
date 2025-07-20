@@ -2,6 +2,12 @@ package player
 
 import "time"
 
+// Position defines screen coordinates for layout
+type Position struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+}
+
 type PlayerClass string
 
 const (
@@ -22,16 +28,39 @@ type Player struct {
 	Gold            int             `json:"gold"`
 	Mana            int             `json:"mana"`
 	MaxMana         int             `json:"max_mana"`
-	Perks           []string        `json:"perks"`
+	UnlockedSkills  []string        `json:"unlocked_skills"` // Changed from Perks
 	SkillPoints     int             `json:"skill_points"`
 	Skills          map[string]int  `json:"skills"`
-	LastCompletedAt time.Time       `json:"last_completed_at,omitempty"` // For combo-streak perk
+	LastCompletedAt time.Time       `json:"last_completed_at,omitempty"`
 	History         struct {
 		QuestsCompleted int `json:"quests_completed"`
 		XPGained        int `json:"xp_gained"`
 	} `json:"history"`
 	LastSeen time.Time `json:"last_seen,omitempty"`
 }
+
+// ... (rest of the file)
+
+type SkillType string
+
+const (
+	TypeActive  SkillType = "ACTIVE"
+	TypePassive SkillType = "PASSIVE"
+	TypeStat    SkillType = "STAT"
+)
+
+type SkillNode struct {
+	ID               string             `json:"id"`
+	Name             string             `json:"name"`
+	Icon             string             `json:"icon"`
+	Description      string             `json:"description"`
+	Type             SkillType          `json:"type"`
+	ClassRequirement string             `json:"class_requirement,omitempty"`
+	Requirements     []string           `json:"requirements"`
+	Position         Position           `json:"position"`
+	Effects          map[string]float64 `json:"effects,omitempty"`
+}
+
 
 type Stats struct {
 	Intelligence int `json:"intelligence"`

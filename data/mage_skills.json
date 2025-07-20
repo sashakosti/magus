@@ -1,0 +1,57 @@
+[
+  {
+    "id": "mage_apprentice",
+    "name": "Ученик мага",
+    "icon": "🎓",
+    "description": "Открывает доступ к базовым заклинаниям.",
+    "type": "PASSIVE",
+    "position": { "x": 25, "y": 0 },
+    "requirements": []
+  },
+  {
+    "id": "fireball",
+    "name": "Огненный шар",
+    "icon": "🔥",
+    "description": "Базовое огненное заклинание.",
+    "type": "ACTIVE",
+    "position": { "x": 20, "y": 3 },
+    "requirements": ["mage_apprentice"]
+  },
+  {
+    "id": "ice_arrow",
+    "name": "Ледяная стрела",
+    "icon": "❄️",
+    "description": "Замедляет врагов.",
+    "type": "ACTIVE",
+    "position": { "x": 30, "y": 3 },
+    "requirements": ["mage_apprentice"]
+  },
+  {
+    "id": "fire_damage_1",
+    "name": "Воспламенение",
+    "icon": "✨",
+    "description": "Огненный шар поджигает цель, нанося периодический урон.",
+    "type": "STAT",
+    "position": { "x": 20, "y": 6 },
+    "requirements": ["fireball", "level_2"],
+    "effects": { "FIRE_DOT": 3 }
+  },
+  {
+    "id": "pyromancer",
+    "name": "Пиромант",
+    "icon": "☄️",
+    "description": "Мастер огня. Открывает ультимативное заклинание 'Метеор'.",
+    "type": "PASSIVE",
+    "position": { "x": 20, "y": 9 },
+    "requirements": ["fire_damage_1", "level_5"]
+  },
+  {
+    "id": "deep_freeze",
+    "name": "Глубокая заморозка",
+    "icon": "🧊",
+    "description": "Усиливает Ледяную стрелу, давая шанс заморозить врага.",
+    "type": "ACTIVE",
+    "position": { "x": 30, "y": 6 },
+    "requirements": ["ice_arrow", "level_2"]
+  }
+]

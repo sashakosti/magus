@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"magus/player"
+	"magus/rpg"
 )
 
 func Show() {
@@ -24,17 +25,17 @@ func Show() {
 	fmt.Printf("🔋 XP: %d / %d\n", p.XP, p.NextLevelXP)
 	fmt.Printf("✨ Очки навыков: %d\n", p.SkillPoints)
 
-	if len(p.Perks) > 0 {
+	if len(p.UnlockedSkills) > 0 {
 		fmt.Println("🎁 Перки:")
-		for _, perk := range p.Perks {
-			fmt.Printf("  • %s\n", perk)
-		}
-	}
-
-	if len(p.Skills) > 0 {
-		fmt.Println("🧠 Навыки:")
-		for skill, level := range p.Skills {
-			fmt.Printf("  • %s: %d\n", skill, level)
+		skillTree, err := rpg.LoadSkillTree(p)
+		if err != nil {
+			fmt.Println("  Не удалось загрузить дерево перков:", err)
+		} else {
+			for _, skillID := range p.UnlockedSkills {
+				if skill, ok := skillTree[skillID]; ok {
+					fmt.Printf("  • %s %s\n", skill.Icon, skill.Name)
+				}
+			}
 		}
 	}
 }

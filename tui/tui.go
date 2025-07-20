@@ -16,6 +16,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+var (
+	cursorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
+)
+
 type dungeonState int
 
 const (
@@ -28,11 +32,13 @@ const (
 
 type Model struct {
 	state           state
+	stateStack      []state
 	player          player.Player
 	quests          []player.Quest
 	displayQuests   []player.Quest
-	perkChoices     []rpg.Perk
-	skills          []rpg.Skill
+	skillChoices    []player.SkillNode
+	skillTree       map[string]player.SkillNode
+	skillList       []player.SkillNode
 	classChoices    []rpg.Class
 	cursor          int
 	activeQuestID   string
@@ -69,6 +75,17 @@ type Model struct {
 	currentMonster           *dungeon.Monster
 	dungeonLog               []string
 
+	// Quest editing
+	editingQuest   player.Quest
+	editInputs     []textinput.Model
+	editFocusIndex int
+
+	// Perk tree view
+	perkCursorX    int
+	perkCursorY    int
+	cameraOffsetX  int
+	cameraOffsetY  int
+
 	terminalWidth  int
 	terminalHeight int
 }
@@ -96,7 +113,6 @@ func InitialModel() Model {
 	}
 
 	quests, _ := storage.LoadAllQuests()
-	skills, _ := rpg.LoadAllSkills()
 
 	vp := viewport.New(100, 20) // Initial size, will be updated
 
@@ -104,7 +120,6 @@ func InitialModel() Model {
 		state:                      stateHomepage,
 		player:                     *p,
 		quests:                     quests,
-		skills:                     skills,
 		cursor:                     0,
 		statusMessage:              "",
 		progressBar:                progress.New(progress.WithDefaultGradient(), progress.WithWidth(40), progress.WithoutPercentage()),
@@ -129,16 +144,33 @@ func InitialModel() Model {
 	}
 
 	if m.player.XP >= m.player.NextLevelXP {
-		perkChoices, _ := rpg.GetPerkChoices(&m.player)
-		if len(perkChoices) > 0 {
-			m.state = stateLevelUp
-			m.perkChoices = perkChoices
-			m.cursor = 0
+		// Загружаем все дерево навыков
+		skillTree, err := rpg.LoadSkillTree(&m.player)
+		if err == nil {
+			var availableSkills []player.SkillNode
+			for _, node := range skillTree {
+				if rpg.IsSkillAvailable(&m.player, node) {
+					availableSkills = append(availableSkills, node)
+				}
+			}
+
+			if len(availableSkills) > 0 {
+				m.state = stateLevelUp
+				m.skillChoices = availableSkills
+				m.cursor = 0
+			} else {
+				// Если доступных навыков нет, просто повышаем уровень
+				player.LevelUpPlayer("") // Передаем пустой ID
+				p, _ := player.LoadPlayer()
+				m.player = *p
+				m.statusMessage = "Новый уровень! Доступных для изучения навыков пока нет."
+			}
 		} else {
+			// Если не удалось загрузить дерево, все равно повышаем уровень
 			player.LevelUpPlayer("")
 			p, _ := player.LoadPlayer()
 			m.player = *p
-			m.statusMessage = "Новый уровень! Доступных перков пока нет."
+			m.statusMessage = "Новый уровень! Ошибка загрузки дерева нав��ков."
 		}
 	}
 
@@ -146,7 +178,7 @@ func InitialModel() Model {
 }
 
 func (m *Model) buildQuestFilters() {
-	filters := []string{"Все", "Daily", "Chore", "Quest"}
+	filters := []string{"Все", "Daily", "Chore", "Quest", "Завершенные", "Просроченные"}
 	tagSet := make(map[string]bool)
 	for _, q := range m.quests {
 		for _, tag := range q.Tags {
@@ -161,108 +193,36 @@ func (m *Model) buildQuestFilters() {
 		tags = append(tags, tag)
 	}
 	sort.Strings(tags)
-	m.allTags = tags // Save for management screen
+	m.allTags = tags
 
-	for _, tag := range tags {
-		filters = append(filters, "#"+tag)
+	if len(tags) > 0 {
+		filters = append(filters, "---")
+		for _, tag := range tags {
+			filters = append(filters, tag)
+		}
 	}
 
 	filters = append(filters, "---", "[Управление тегами]")
 	m.questFilters = filters
 }
 
+func (m *Model) pushState(newState state) {
+	m.stateStack = append(m.stateStack, m.state)
+	m.state = newState
+	m.statusMessage = ""
+	m.cursor = 0
+}
 
-func (m *Model) sortAndBuildDisplayQuests() {
-	// 1. Filter quests based on the active filter
-	var filteredQuests []player.Quest
-	if m.activeQuestFilter == "Все" {
-		for _, q := range m.quests {
-			// Show all non-completed, or daily/chore quests
-			if !q.Completed || q.Type == player.Daily || q.Type == player.Chore {
-				filteredQuests = append(filteredQuests, q)
-			}
-		}
-	} else if m.activeQuestFilter == "Daily" {
-		for _, q := range m.quests {
-			if q.Type == player.Daily {
-				filteredQuests = append(filteredQuests, q)
-			}
-		}
-	} else if m.activeQuestFilter == "Chore" {
-		for _, q := range m.quests {
-			if q.Type == player.Chore {
-				filteredQuests = append(filteredQuests, q)
-			}
-		}
-	} else if m.activeQuestFilter == "Quest" {
-		for _, q := range m.quests {
-			if (q.Type == player.Arc || q.Type == player.Meta || q.Type == player.Epic) && !q.Completed {
-				filteredQuests = append(filteredQuests, q)
-			}
-		}
-	} else if strings.HasPrefix(m.activeQuestFilter, "#") {
-		tag := strings.TrimPrefix(m.activeQuestFilter, "#")
-		for _, q := range m.quests {
-			if !q.Completed || q.Type == player.Daily || q.Type == player.Chore {
-				for _, t := range q.Tags {
-					if t == tag {
-						filteredQuests = append(filteredQuests, q)
-						break
-					}
-				}
-			}
-		}
+func (m *Model) popState() (tea.Model, tea.Cmd) {
+	if len(m.stateStack) > 0 {
+		lastStateIndex := len(m.stateStack) - 1
+		m.state = m.stateStack[lastStateIndex]
+		m.stateStack = m.stateStack[:lastStateIndex]
+		m.statusMessage = ""
+		m.cursor = 0
+		return m, nil
 	}
-
-	// 2. Sort the filtered quests
-	sort.SliceStable(filteredQuests, func(i, j int) bool {
-		// Completed daily quests go to the bottom
-		iCompleted := filteredQuests[i].Type == player.Daily && isToday(filteredQuests[i].CompletedAt)
-		jCompleted := filteredQuests[j].Type == player.Daily && isToday(filteredQuests[j].CompletedAt)
-		if iCompleted && !jCompleted {
-			return false
-		}
-		if !iCompleted && jCompleted {
-			return true
-		}
-
-		// Then sort by deadline
-		d1 := filteredQuests[i].Deadline
-		d2 := filteredQuests[j].Deadline
-		if d1 != nil && d2 != nil {
-			return d1.Before(*d2)
-		}
-		if d1 != nil && d2 == nil {
-			return true
-		}
-		if d1 == nil && d2 != nil {
-			return false
-		}
-		// Finally, by creation time
-		return filteredQuests[i].CreatedAt.After(filteredQuests[j].CreatedAt)
-	})
-
-	// 3. Build the hierarchical display list
-	subQuests := make(map[string][]player.Quest)
-	for _, q := range filteredQuests {
-		if q.ParentID != "" {
-			subQuests[q.ParentID] = append(subQuests[q.ParentID], q)
-		}
-	}
-
-	displayQuests := []player.Quest{}
-	for _, q := range filteredQuests {
-		if q.ParentID != "" {
-			continue
-		}
-		displayQuests = append(displayQuests, q)
-		if children, ok := subQuests[q.ID]; ok {
-			if !m.collapsed[q.ID] {
-				displayQuests = append(displayQuests, children...)
-			}
-		}
-	}
-	m.displayQuests = displayQuests
+	return m, tea.Quit // Если стек пуст, выходим из приложения
 }
 
 func (m *Model) Init() tea.Cmd {
@@ -270,14 +230,12 @@ func (m *Model) Init() tea.Cmd {
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Handle dungeon ticks globally
 	if m.state == stateDungeon {
 		if tick, ok := msg.(dungeonTickMsg); ok {
 			return m.updateDungeon(tick)
 		}
 	}
 
-	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.terminalWidth = msg.Width
@@ -288,38 +246,18 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key == "ctrl+c" {
 			return m, tea.Quit
 		}
-		// Universal quit from most states
-		if key == "q" {
-			if m.state == stateDungeon || m.state == stateQuests || m.state == stateQuestsFilter || m.state == stateCompletedQuests || m.state == stateSkills || m.state == stateClassChoice {
-				if m.state == stateDungeon && m.dungeonTicker != nil {
-					m.dungeonTicker.Stop()
-				}
-				m.state = stateHomepage
-				if m.state == stateDungeon {
-					m.statusMessage = "Вы сбежали из данжа."
-				} else {
-					m.statusMessage = ""
-				}
-				m.cursor = 0
-				return m, nil
-			}
-			if m.state == stateHomepage || m.state == stateCreatePlayer {
-				return m, tea.Quit
-			}
-			if m.state == stateAddQuest {
-				m.addQuestInputs = nil
-				m.state = stateHomepage
-				m.statusMessage = ""
-				m.cursor = 0
-				return m, nil
-			}
+		if key == "q" || key == "esc" {
+			return m.popState()
 		}
 		if key == "a" && (m.state == stateHomepage || m.state == stateQuests || m.state == stateQuestsFilter) {
-			m.state = stateAddQuest
-			m.addQuestCursor = 0
-			m.addQuestTypeIdx = 0
-			m.addQuestInputs = newAddQuestInputs()
-			return m, nil
+			m.pushState(stateAddQuest)
+			m.initAddQuest()
+			return m, textinput.Blink
+		}
+		if key == "e" && m.state == stateQuests && len(m.displayQuests) > 0 {
+			m.pushState(stateQuestEdit)
+			m.initQuestEdit()
+			return m, textinput.Blink
 		}
 	}
 
@@ -328,80 +266,66 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateHomepage(msg)
 	case stateQuests, stateQuestsFilter:
 		return m.updateQuests(msg)
-	case stateManageTags:
-		return m.updateManageTags(msg)
 	case stateCompletedQuests:
 		return m.updateCompletedQuests(msg)
 	case stateAddQuest:
 		return m.updateAddQuest(msg)
-	case stateLevelUp:
-		return m.updateLevelUp(msg)
+	case stateQuestEdit:
+		return m.updateQuestEdit(msg)
+	case statePerks:
+		return m.updateSkillTreeView(msg)
 	case stateSkills:
 		return m.updateSkills(msg)
-	case stateClassChoice:
-		return m.updateClassChoice(msg)
-	case stateCreatePlayer:
-		return m.updateCreatePlayer(msg)
-	case stateDungeonPrep:
-		return m.updateDungeonPrep(msg)
-	case stateDungeon:
-		return m.updateDungeon(msg)
+	case stateLevelUp:
+		return m.updateLevelUp(msg)
+	case stateManageTags:
+		return m.updateManageTags(msg)
+	}
+	return m, nil
+}
+
+func (m *Model) getNavigationText() string {
+	bindings, ok := KeyMap[m.state]
+	if !ok {
+		return ""
 	}
 
-	return m, cmd
+	// Специальный случай для данжа, где текст зависит от под-состояния
+	if m.state == stateDungeon && m.dungeonState == DungeonStateFinished {
+		return "Нажмите любую клавишу для возврата."
+	}
+
+	var parts []string
+	for _, binding := range bindings {
+		parts = append(parts, binding.Key+": "+binding.Description)
+	}
+	return strings.Join(parts, " | ")
 }
 
 func (m *Model) View() string {
 	var s strings.Builder
-
 	switch m.state {
 	case stateHomepage:
 		s.WriteString(m.viewHomepage())
 	case stateQuests, stateQuestsFilter:
 		s.WriteString(m.viewQuests())
-	case stateManageTags:
-		s.WriteString(m.viewManageTags())
-	case stateCompletedQuests:
-		s.WriteString(m.viewCompletedQuests())
 	case stateAddQuest:
 		s.WriteString(m.viewAddQuest())
-	case stateLevelUp:
-		s.WriteString(m.viewLevelUp())
+	case stateQuestEdit:
+		s.WriteString(m.viewQuestEdit())
 	case stateSkills:
 		s.WriteString(m.viewSkills())
-	case stateClassChoice:
-		s.WriteString(m.viewClassChoice())
-	case stateCreatePlayer:
-		s.WriteString(m.viewCreatePlayer())
-	case stateDungeonPrep:
-		s.WriteString(m.viewDungeonPrep())
+	case statePerks:
+		s.WriteString(m.viewSkillTree())
 	case stateDungeon:
 		s.WriteString(m.viewDungeon())
+	case stateDungeonPrep:
+		s.WriteString(m.viewDungeonPrep())
 	default:
 		s.WriteString("Неизвестное состояние")
 	}
 
-	navText := ""
-	switch m.state {
-	case stateHomepage:
-		navText = "Навигация: ↑/↓, Enter, 'a' - добавить, 'q' - выход."
-	case stateQuestsFilter:
-		navText = "Фильтры: ↑/↓, Enter/→ - выбрать, 'a' - добавить, 'q' - назад."
-	case stateQuests:
-		navText = "Квесты: ↑/↓, Enter, [Пробел], ← - к фильтрам, 'a' - добавить, 'q' - назад."
-	case stateManageTags:
-		navText = "Теги: ↑/↓, 'd' - удалить, 'r' - переименовать, 'q' - назад."
-	case stateAddQuest:
-		navText = "Навигаци��: ↑/↓, ←/→, Enter, 'q' - отмена."
-	case stateSkills:
-		navText = "Нажмите 'enter' для улучшения, 'q' - назад."
-	case stateDungeon:
-		if m.dungeonState == DungeonStateFinished {
-			navText = "Нажмите любую клавишу для возврата."
-		} else {
-			navText = "Поход в процессе... 'q' - сбежать."
-		}
-	}
+	navText := m.getNavigationText()
 
 	if navText != "" {
 		s.WriteString("\n")

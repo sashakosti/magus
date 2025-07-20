@@ -1,0 +1,39 @@
+[
+  {
+    "id": "warrior_initiate",
+    "name": "Посвященный воин",
+    "icon": "⚔️",
+    "description": "Открывает доступ к боевым стойкам и маневрам.",
+    "type": "PASSIVE",
+    "position": { "x": 45, "y": 0 },
+    "requirements": []
+  },
+  {
+    "id": "power_strike",
+    "name": "Мощный удар",
+    "icon": "💥",
+    "description": "Сильный удар, который может оглушить цель.",
+    "type": "ACTIVE",
+    "position": { "x": 40, "y": 3 },
+    "requirements": ["warrior_initiate"]
+  },
+  {
+    "id": "defensive_stance",
+    "name": "Защитная стойка",
+    "icon": "🛡️",
+    "description": "Увеличивает защиту, но снижает скорость.",
+    "type": "PASSIVE",
+    "position": { "x": 50, "y": 3 },
+    "requirements": ["warrior_initiate"]
+  },
+  {
+    "id": "armor_penetration",
+    "name": "Пробитие брони",
+    "icon": "🎯",
+    "description": "Атаки игнорируют часть брони противника.",
+    "type": "STAT",
+    "position": { "x": 40, "y": 6 },
+    "requirements": ["power_strike", "level_3"],
+    "effects": { "ARMOR_PEN_MOD": 0.15 }
+  }
+]

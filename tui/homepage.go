@@ -19,21 +19,18 @@ func (m *Model) updateHomepage(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.homepageCursor--
 			}
 		case "down", "j":
-			if m.homepageCursor < 4 {
+			if m.homepageCursor < 3 { // Now 4 items: 0, 1, 2, 3
 				m.homepageCursor++
 			}
 		case "enter":
 			switch m.homepageCursor {
 			case 0:
-				m.state = stateQuests
+				m.pushState(stateQuests)
 			case 1:
-				m.state = stateCompletedQuests
+				m.pushState(statePerks)
 			case 2:
-				m.state = stateSkills
+				m.pushState(stateDungeonPrep)
 			case 3:
-				m.state = stateDungeonPrep
-				m.statusMessage = ""
-			case 4:
 				return m, tea.Quit
 			}
 			m.cursor = 0
@@ -53,7 +50,7 @@ func (m *Model) viewHomepage() string {
 		{"❤", fmt.Sprintf("HP: %d / %d", m.player.HP, m.player.MaxHP)},
 		{"💧", fmt.Sprintf("Мана: %d / %d", m.player.Mana, m.player.MaxMana)},
 		{"💰", fmt.Sprintf("Золото: %d", m.player.Gold)},
-		{"🎁", fmt.Sprintf("Перки: %s", strings.Join(m.player.Perks, ", "))},
+		{"🎁", fmt.Sprintf("Навыки: %d", len(m.player.UnlockedSkills))},
 		{"✨", fmt.Sprintf("Очки навыков: %d", m.player.SkillPoints)},
 	}
 
@@ -69,7 +66,7 @@ func (m *Model) viewHomepage() string {
 
 	for _, line := range lines {
 		if (line.icon == "🛡" && m.player.Class == player.ClassNone) ||
-			(line.icon == "🎁" && len(m.player.Perks) == 0) ||
+			(line.icon == "🎁" && len(m.player.UnlockedSkills) == 0) ||
 			(line.icon == "✨" && m.player.SkillPoints == 0) {
 			continue
 		}
@@ -98,7 +95,7 @@ func (m *Model) viewHomepage() string {
 	playerInfoBox := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("63")).Padding(1, 2).Render(playerInfoContent)
 
 	var menuLines []string
-	menuItems := []string{"Активные квесты", "Завершенные квесты", "Навыки", "Отправиться в данж", "Выход"}
+	menuItems := []string{"Активные квесты", "Дерево перков", "Отправиться в данж", "Выход"}
 	for i, item := range menuItems {
 		cursor := " "
 		if m.homepageCursor == i {
