@@ -5,7 +5,6 @@ import (
 	"magus/player"
 	"magus/storage"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -24,18 +23,29 @@ func Complete() {
 
 	var completedQuest player.Quest
 	var found bool
-	var xpGained int
 
-	// Находим и завершаем квест
 	for i, q := range quests {
 		if q.ID == questID {
-			if q.Completed || (q.Type == player.Daily && isToday(q.CompletedAt)) {
+			if q.Completed {
 				fmt.Println("⚠️ Квест уже выполнен.")
 				return
 			}
-			quests[i].Completed = true
-			quests[i].CompletedAt = time.Now()
-			xpGained = q.XP
+
+			switch q.Type {
+			case player.TypeGoal:
+				fmt.Println("⚠️ Цели (Goal) нельзя завершить напрямую. Завершите все подзадачи.")
+				return
+			case player.TypeRitual:
+				fmt.Println("💧 Ритуал выполнен. Мана восстановлена (в TUI).")
+				// Логика начисления маны находится в TUI, здесь просто сообщение
+			case player.TypeFocus:
+				quests[i].Completed = true
+				quests[i].CompletedAt = time.Now()
+				quests[i].Progress = q.HP // Считаем выполненным
+				addXP(q.XP)
+				fmt.Println("✅ Квест завершён!")
+			}
+
 			completedQuest = quests[i]
 			found = true
 			break
@@ -47,15 +57,11 @@ func Complete() {
 		return
 	}
 
-	// Сохраняем изменения
 	if err := storage.SaveAllQuests(quests); err != nil {
 		fmt.Println("❌ Ошибка сохранения квестов:", err)
 		return
 	}
-	fmt.Println("✅ Квест завершён!")
-	addXP(xpGained, completedQuest.Type)
 
-	// Проверяем, не нужно ли завершить родительский квест
 	if completedQuest.ParentID != "" {
 		checkAndCompleteParent(completedQuest.ParentID)
 	}
@@ -69,8 +75,8 @@ func checkAndCompleteParent(parentID string) {
 		return
 	}
 
-	var subQuestsCompleted = true
-	var parentQuestIndex = -1
+	subQuestsCompleted := true
+	parentQuestIndex := -1
 
 	for i, q := range quests {
 		if q.ID == parentID {
@@ -88,8 +94,8 @@ func checkAndCompleteParent(parentID string) {
 		if !parent.Completed {
 			parent.Completed = true
 			parent.CompletedAt = time.Now()
-			fmt.Printf("🎉 Все подзадачи выполнены! Родительский квест '%s' завершён!\n", parent.Title)
-            addXP(parent.XP, parent.Type) // Начисляем XP за родительский квест с учетом типа
+			fmt.Printf("🎉 Все подзадачи выполнены! Родительский квест '%s' завершён!", parent.Title)
+			addXP(parent.XP)
 
 			if err := storage.SaveAllQuests(quests); err != nil {
 				fmt.Println("❌ Ошибка сохранения родительского квеста:", err)
@@ -98,73 +104,17 @@ func checkAndCompleteParent(parentID string) {
 	}
 }
 
-// addXP начисляет опыт с учетом классовых бонусов и перков, и обрабатывает повышение уровня.
-func addXP(xp int, questType player.QuestType) {
+// addXP начисляет опыт и обрабатывает повышение уровня.
+func addXP(xp int) {
 	if xp <= 0 {
 		return
 	}
 
-	p, err := player.LoadPlayer()
-	if err != nil {
-		if err == player.ErrPlayerNotFound {
-			fmt.Println("🔮 Игрок не найден. Создайте его, запустив `magus` без аргументов.")
-			return
-		}
-		fmt.Println("❌ Ошибка загрузки игрока для начисления XP:", err)
-		return
-	}
-
-	totalXP := xp
-	bonusMessages := []string{}
-
-	// 1. Классовые бонусы
-	classBonus := 0
-	switch p.Class {
-	case player.ClassMage:
-		if questType == player.Arc || questType == player.Epic {
-			bonus := 15
-			if hasPerk(p, "Магический резонанс") {
-				bonus = 25
-			}
-			classBonus = totalXP * bonus / 100
-			if classBonus > 0 {
-				bonusMessages = append(bonusMessages, fmt.Sprintf("+%d бонус класса", classBonus))
-			}
-		}
-	case player.ClassWarrior:
-		if hasPerk(p, "Боевой раж") && questType == player.Daily {
-			classBonus = 5
-			bonusMessages = append(bonusMessages, fmt.Sprintf("+%d бонус перка", classBonus))
-		}
-	}
-	totalXP += classBonus
-
-	// 2. Бонусы от перков
-	perkBonus := 0
-	if hasPerk(p, "Фокус") && isFirstQuestOfDay(p) {
-		perkBonus += 5
-		bonusMessages = append(bonusMessages, "+5 Фокус")
-	}
-	if hasPerk(p, "Комбо-стрик") && time.Since(p.LastCompletedAt).Hours() < 1 {
-		perkBonus += 5
-		bonusMessages = append(bonusMessages, "+5 Комбо")
-	}
-	totalXP += perkBonus
-
-	// Обновляем время последнего квеста и сохраняем
-	p.LastCompletedAt = time.Now()
-	player.SavePlayer(p)
-
-	// Начисляем итоговый опыт
-	canLevelUp, err := player.AddXP(totalXP)
+	canLevelUp, err := player.AddXP(xp)
 	if err != nil {
 		fmt.Println("❌ Не удалось начислить XP:", err)
 	} else {
-		if len(bonusMessages) > 0 {
-			fmt.Printf("✨ +%d XP (%s)!\n", totalXP, strings.Join(bonusMessages, ", "))
-		} else {
-			fmt.Printf("✨ +%d XP!\n", totalXP)
-		}
+		fmt.Printf("✨ +%d XP!\n", xp)
 		if canLevelUp {
 			fmt.Println("🔥 Поздравляем! Вы можете повысить уровень! Запустите `magus` для выбора перка или класса.")
 		}
@@ -174,6 +124,3 @@ func addXP(xp int, questType player.QuestType) {
 func isFirstQuestOfDay(p *player.Player) bool {
 	return !isToday(p.LastCompletedAt)
 }
-
-
-

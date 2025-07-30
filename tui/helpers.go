@@ -8,6 +8,38 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// RenderProgressBar создает строку с прогресс-баром.
+func RenderProgressBar(current, max, width int) string {
+	// Обеспечиваем, чтобы current не выходил за пределы [0, max]
+	if current < 0 {
+		current = 0
+	}
+	if current > max {
+		current = max
+	}
+
+	percent := float64(current) / float64(max)
+	filledWidth := int(percent * float64(width))
+
+	// Выбираем цвет в зависимости от процента
+	var barColor lipgloss.Color
+	if percent > 0.5 {
+		barColor = lipgloss.Color("10") // Зеленый
+	} else if percent > 0.25 {
+		barColor = lipgloss.Color("11") // Желтый
+	} else {
+		barColor = lipgloss.Color("9") // Красный
+	}
+
+	filled := strings.Repeat("█", filledWidth)
+	empty := strings.Repeat("─", width-filledWidth)
+
+	bar := filled + empty
+
+	return lipgloss.NewStyle().Foreground(barColor).Render(bar)
+}
+
+
 func isToday(t time.Time) bool {
 	now := time.Now()
 	return t.Year() == now.Year() && t.Month() == now.Month() && t.Day() == now.Day()

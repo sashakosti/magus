@@ -54,15 +54,18 @@ func List() {
 }
 
 func printQuest(q player.Quest, indentationLevel int) {
-	if q.Completed && q.Type != player.Daily {
-		return // Не показываем выполненные квесты, кроме дейликов
+	if q.Completed {
+		return // Не показываем выполненные квесты
 	}
 
 	var status string
-	if q.Completed || (q.Type == player.Daily && isToday(q.CompletedAt)) {
-		status = "✅"
+	// Для Ritual квестов статус всегда "активен", т.к. они повторяемые
+	if q.Type == player.TypeRitual {
+		status = "💧"
+	} else if q.Progress > 0 && q.Progress < q.HP {
+		status = "⚙️" // В процессе
 	} else {
-		status = "⏳"
+		status = "⏳" // Ожидает
 	}
 
 	indent := strings.Repeat("  ", indentationLevel)
@@ -70,11 +73,21 @@ func printQuest(q player.Quest, indentationLevel int) {
 		indent += "└─ "
 	}
 
-	fmt.Printf("%s%s [%s] %s (XP: %d) {id: %s}\n",
+	var details string
+	switch q.Type {
+	case player.TypeFocus:
+		details = fmt.Sprintf("(HP: %d/%d, XP: %d)", q.Progress, q.HP, q.XP)
+	case player.TypeGoal:
+		details = fmt.Sprintf("(XP: %d)", q.XP)
+	case player.TypeRitual:
+		details = fmt.Sprintf("(%s)", q.RitualSubtype)
+	}
+
+	fmt.Printf("%s%s [%s] %s %s {id: %s}\n",
 		indent,
 		status,
 		strings.ToUpper(string(q.Type)),
 		q.Title,
-		q.XP,
+		details,
 		q.ID)
 }

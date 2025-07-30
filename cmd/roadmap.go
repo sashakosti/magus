@@ -77,10 +77,10 @@ func Roadmap() {
 	// Список задач
 	fmt.Println("Подзадачи:")
 	for _, q := range allRelatedQuests {
-		status := "⏳"
+		// status := "⏳"
 		style := lipgloss.NewStyle()
 		if q.Completed {
-			status = "✅"
+			// status = "✅"
 			style = style.Strikethrough(true).Faint(true)
 		}
 
@@ -90,6 +90,6 @@ func Roadmap() {
 			indent = strings.Repeat("  ", strings.Count(q.ParentID, "")-1) + "└─ "
 		}
 
-		fmt.Println(style.Render(fmt.Sprintf("%s%s %s", indent, status, q.Title)))
+		fmt.Println(style.Render(fmt.Sprintf("%s%s", indent, q.Title)))
 	}
 }

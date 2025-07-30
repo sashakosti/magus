@@ -2,55 +2,94 @@ package tui
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"magus/player"
 	"magus/storage"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
-func (m *Model) updateManageTags(msg tea.Msg) (tea.Model, tea.Cmd) {
+type ManageTagsState struct {
+	cursor         int
+	allTags        []string
+	renameTagInput textinput.Model
+}
+
+func NewManageTagsState(m *Model) *ManageTagsState {
+	s := &ManageTagsState{}
+	s.buildTagList(m)
+
+	ti := textinput.New()
+	ti.Placeholder = "Новое имя тега"
+	ti.CharLimit = 30
+	s.renameTagInput = ti
+
+	return s
+}
+
+func (s *ManageTagsState) buildTagList(m *Model) {
+	tagSet := make(map[string]bool)
+	for _, q := range m.Quests {
+		for _, tag := range q.Tags {
+			tagSet[tag] = true
+		}
+	}
+	s.allTags = make([]string, 0, len(tagSet))
+	for tag := range tagSet {
+		s.allTags = append(s.allTags, tag)
+	}
+	sort.Strings(s.allTags)
+}
+
+func (s *ManageTagsState) Init() tea.Cmd {
+	return nil
+}
+
+func (s *ManageTagsState) Update(m *Model, msg tea.Msg) (State, tea.Cmd) {
 	var cmd tea.Cmd
 
-	if m.renameTagInput.Focused() {
+	if s.renameTagInput.Focused() {
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
-			oldTag := m.allTags[m.tagCursor]
-			newTag := m.renameTagInput.Value()
+			oldTag := s.allTags[s.cursor]
+			newTag := s.renameTagInput.Value()
 			if newTag != "" && newTag != oldTag {
-				for i := range m.quests {
-					for j, tag := range m.quests[i].Tags {
+				for i := range m.Quests {
+					for j, tag := range m.Quests[i].Tags {
 						if tag == oldTag {
-							m.quests[i].Tags[j] = newTag
+							m.Quests[i].Tags[j] = newTag
 						}
 					}
 				}
-				storage.SaveAllQuests(m.quests)
-				m.buildQuestFilters() // Rebuild filters with new tag
+				storage.SaveAllQuests(m.Quests)
+				s.buildTagList(m) // Rebuild our own list
 			}
-			m.renameTagInput.Blur()
-			m.renameTagInput.Reset()
+			s.renameTagInput.Blur()
+			s.renameTagInput.Reset()
 		} else {
-			m.renameTagInput, cmd = m.renameTagInput.Update(msg)
+			s.renameTagInput, cmd = s.renameTagInput.Update(msg)
 		}
-		return m, cmd
+		return s, cmd
 	}
 
 	if key, ok := msg.(tea.KeyMsg); ok {
 		switch key.String() {
 		case "up", "k":
-			if m.tagCursor > 0 {
-				m.tagCursor--
+			if s.cursor > 0 {
+				s.cursor--
 			}
 		case "down", "j":
-			if m.tagCursor < len(m.allTags)-1 {
-				m.tagCursor++
+			if s.cursor < len(s.allTags)-1 {
+				s.cursor++
 			}
 		case "d":
-			if len(m.allTags) > 0 {
-				tagToDelete := m.allTags[m.tagCursor]
+			if len(s.allTags) > 0 {
+				tagToDelete := s.allTags[s.cursor]
 				var updatedQuests []player.Quest
-				for _, quest := range m.quests {
+				for _, quest := range m.Quests {
 					var newTags []string
 					for _, tag := range quest.Tags {
 						if tag != tagToDelete {
@@ -60,46 +99,49 @@ func (m *Model) updateManageTags(msg tea.Msg) (tea.Model, tea.Cmd) {
 					quest.Tags = newTags
 					updatedQuests = append(updatedQuests, quest)
 				}
-				m.quests = updatedQuests
-				storage.SaveAllQuests(m.quests)
-				m.buildQuestFilters() // Rebuild filters
-				m.tagCursor = 0
+				m.Quests = updatedQuests
+				storage.SaveAllQuests(m.Quests)
+				s.buildTagList(m) // Rebuild
+				if s.cursor >= len(s.allTags) && len(s.allTags) > 0 {
+					s.cursor = len(s.allTags) - 1
+				}
 			}
 		case "r":
-			if len(m.allTags) > 0 {
-				m.renameTagInput.Focus()
-				m.renameTagInput.SetValue(m.allTags[m.tagCursor])
-				m.renameTagInput.CursorEnd()
+			if len(s.allTags) > 0 {
+				s.renameTagInput.Focus()
+				s.renameTagInput.SetValue(s.allTags[s.cursor])
+				s.renameTagInput.CursorEnd()
 			}
 		case "q", "esc":
-			m.state = stateQuestsFilter
-			m.statusMessage = ""
+			return PopState{}, nil // Signal to pop the state
 		}
 	}
 
-	return m, nil
+	return s, nil
 }
 
-func (m *Model) viewManageTags() string {
+func (s *ManageTagsState) View(m *Model) string {
 	var b strings.Builder
-	b.WriteString(titleStyle.Render("Управление тегами") + "\n\n")
+	b.WriteString(m.styles.TitleStyle.Render("Управление тегами") + "\n\n")
 
-	if len(m.allTags) == 0 {
+	if len(s.allTags) == 0 {
 		b.WriteString("У вас пока нет тегов.\n")
 	}
 
-	for i, tag := range m.allTags {
+	for i, tag := range s.allTags {
 		cursor := " "
-		if m.tagCursor == i {
+		style := lipgloss.NewStyle()
+		if s.cursor == i {
 			cursor = ">"
+			style = style.Foreground(lipgloss.Color("205"))
 		}
-		b.WriteString(fmt.Sprintf("%s %s\n", cursor, tag))
+		b.WriteString(style.Render(fmt.Sprintf("%s %s\n", cursor, tag)))
 	}
 
-	if m.renameTagInput.Focused() {
-		b.WriteString("\nПереименовать в: " + m.renameTagInput.View())
+	if s.renameTagInput.Focused() {
+		b.WriteString("\nПереименовать в: " + s.renameTagInput.View())
 	}
 
 	b.WriteString("\n\nНавигация: ↑/↓, 'd' - удалить, 'r' - переименовать, 'q' - назад.")
-	return docStyle.Render(b.String())
+	return lipgloss.NewStyle().Margin(1, 2).Render(b.String())
 }

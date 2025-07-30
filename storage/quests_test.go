@@ -21,7 +21,7 @@ func TestSaveAndLoadQuests(t *testing.T) {
 	QuestFile = tmpfile.Name()
 	defer func() { QuestFile = originalPath }()
 
-	quests := []player.Quest{
+	var quests = []player.Quest{
 		{ID: "q1", Title: "Test Quest 1", CreatedAt: time.Now()},
 		{ID: "q2", Title: "Test Quest 2", CreatedAt: time.Now()},
 	}

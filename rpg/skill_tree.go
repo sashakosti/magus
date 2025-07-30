@@ -9,63 +9,42 @@ import (
 	"strings"
 )
 
-// loadSkillsFromFile загружает и декодирует навыки из указанного файла.
-func loadSkillsFromFile(filePath string) ([]player.SkillNode, error) {
-	file, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("не удалось прочитать файл %s: %w", filePath, err)
-	}
-
-	var nodes []player.SkillNode
-	if err := json.Unmarshal(file, &nodes); err != nil {
-		return nil, fmt.Errorf("ошибка парсинга %s: %w", filePath, err)
-	}
-	return nodes, nil
+// SkillTrees содержит разделенные деревья навыков.
+type SkillTrees struct {
+	Common map[string]player.SkillNode
+	Class  map[string]player.SkillNode
 }
 
-// LoadSkillTree загружает дерево навыков для конкретного игрока.
-func LoadSkillTree(p *player.Player) (map[string]player.SkillNode, error) {
-	skillTree := make(map[string]player.SkillNode)
+// LoadSkillTrees загружает и разделяет навыки на общие и классовые из skill_tree.json.
+func LoadSkillTrees(p *player.Player) (SkillTrees, error) {
+	trees := SkillTrees{
+		Common: make(map[string]player.SkillNode),
+		Class:  make(map[string]player.SkillNode),
+	}
 
-	// 1. Загружаем общие навыки
-	commonSkills, err := loadSkillsFromFile("data/common_skills.json")
+	file, err := ioutil.ReadFile("data/skill_tree.json")
 	if err != nil {
-		return nil, err
-	}
-	for _, node := range commonSkills {
-		skillTree[node.ID] = node
+		return trees, fmt.Errorf("не удалось прочитать файл data/skill_tree.json: %w", err)
 	}
 
-	// 2. Загружаем классовые навыки
-	var classSkillFile string
-	switch p.Class {
-	case player.ClassMage:
-		classSkillFile = "data/mage_skills.json"
-	case player.ClassWarrior:
-		classSkillFile = "data/warrior_skills.json"
-	case player.ClassRogue:
-		classSkillFile = "data/rogue_skills.json"
-	default:
-		// Если класс не выбран или неизвестен, загружаем только общие навыки
-		return skillTree, nil
+	var allNodes []player.SkillNode
+	if err := json.Unmarshal(file, &allNodes); err != nil {
+		return trees, fmt.Errorf("ошибка парсинга data/skill_tree.json: %w", err)
 	}
 
-	classSkills, err := loadSkillsFromFile(classSkillFile)
-	if err != nil {
-		return nil, err
-	}
-	for _, node := range classSkills {
-		// Проверяем на случай дублирования ID
-		if _, exists := skillTree[node.ID]; exists {
-			fmt.Printf("Внимание: Дубликат ID навыка '%s' в файле %s\n", node.ID, classSkillFile)
+	for _, node := range allNodes {
+		// Убираем поле ClassRequirement из JSON, если оно пустое, для обратной совместимости
+		if node.ClassRequirement == "" {
+			trees.Common[node.ID] = node
+		} else if node.ClassRequirement == string(p.Class) {
+			trees.Class[node.ID] = node
 		}
-		skillTree[node.ID] = node
 	}
 
-	return skillTree, nil
+	return trees, nil
 }
 
-// IsSkillUnlocked проверяет, разблокирован ли у игрока данный перк.
+// IsSkillUnlocked проверяет, разблокирован ли у игрока данный навык.
 func IsSkillUnlocked(p *player.Player, skillID string) bool {
 	for _, unlockedSkill := range p.UnlockedSkills {
 		if unlockedSkill == skillID {
@@ -75,10 +54,16 @@ func IsSkillUnlocked(p *player.Player, skillID string) bool {
 	return false
 }
 
-// IsSkillAvailable проверяет, доступен ли перк для изучения.
-func IsSkillAvailable(p *player.Player, node player.SkillNode) bool {
+// IsSkillAvailable проверяет, доступен ли навык для изучения.
+// skillTree - это объединенная карта общих и классовых навыков.
+func IsSkillAvailable(p *player.Player, node player.SkillNode, skillTree map[string]player.SkillNode) bool {
 	if IsSkillUnlocked(p, node.ID) {
 		return false // Уже разблокирован
+	}
+
+	// Проверка на соответствие классу
+	if node.ClassRequirement != "" && node.ClassRequirement != string(p.Class) {
+		return false
 	}
 
 	for _, reqID := range node.Requirements {
@@ -87,17 +72,16 @@ func IsSkillAvailable(p *player.Player, node player.SkillNode) bool {
 			levelStr := strings.TrimPrefix(reqID, "level_")
 			requiredLevel, err := strconv.Atoi(levelStr)
 			if err != nil {
-				// Обработка ошибки, если формат требования уровня некорректен
-                fmt.Printf("Ошибка парсинга требования к уровню: %s\n", reqID)
-                return false
-            }
+				fmt.Printf("Ошибка парсинга требования к уровню: %s\n", reqID)
+				return false
+			}
 			if p.Level < requiredLevel {
 				return false
 			}
 			continue // Переходим к следующему требованию
 		}
 
-		// Проверка других перков
+		// Проверка других навыков
 		if !IsSkillUnlocked(p, reqID) {
 			return false
 		}

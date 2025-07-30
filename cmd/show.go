@@ -27,13 +27,33 @@ func Show() {
 
 	if len(p.UnlockedSkills) > 0 {
 		fmt.Println("🎁 Перки:")
-		skillTree, err := rpg.LoadSkillTree(p)
+		skillTrees, err := rpg.LoadSkillTrees(p)
 		if err != nil {
-			fmt.Println("  Не удалось загрузить дерево перков:", err)
+			fmt.Println("  Не удалось загрузить дерево навыков:", err)
 		} else {
-			for _, skillID := range p.UnlockedSkills {
-				if skill, ok := skillTree[skillID]; ok {
-					fmt.Printf("  • %s %s\n", skill.Icon, skill.Name)
+			fmt.Println("\n--- Общие навыки ---")
+			if len(skillTrees.Common) == 0 {
+				fmt.Println("Нет доступных общих навыков.")
+			} else {
+				for _, node := range skillTrees.Common {
+					unlocked := ""
+					if rpg.IsSkillUnlocked(p, node.ID) {
+						unlocked = "[ИЗУЧЕНО]"
+					}
+					fmt.Printf("- %s %s\n  %s\n", node.Name, unlocked, node.Description)
+				}
+			}
+
+			fmt.Println("\n--- Классовые навыки ---")
+			if len(skillTrees.Class) == 0 {
+				fmt.Println("Нет доступных классовых навыков.")
+			} else {
+				for _, node := range skillTrees.Class {
+					unlocked := ""
+					if rpg.IsSkillUnlocked(p, node.ID) {
+						unlocked = "[ИЗУЧЕНО]"
+					}
+					fmt.Printf("- %s %s\n  %s\n", node.Name, unlocked, node.Description)
 				}
 			}
 		}

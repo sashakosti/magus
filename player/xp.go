@@ -3,8 +3,7 @@ package player
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
-	"os"
+	"os" // lol
 	"time"
 )
 
@@ -79,7 +78,7 @@ func LoadPlayer() (*Player, error) {
 		return nil, ErrPlayerNotFound
 	}
 
-	file, err := ioutil.ReadFile(PlayerFile)
+	file, err := os.ReadFile(PlayerFile)
 	if err != nil {
 		return nil, err
 	}
@@ -114,10 +113,11 @@ func SavePlayer(p *Player) error {
 	if _, err := os.Stat("data"); os.IsNotExist(err) {
 		os.Mkdir("data", 0755)
 	}
-	return ioutil.WriteFile(PlayerFile, data, 0644)
+	return os.WriteFile(PlayerFile, data, 0644)
 }
 
 // calculateNextLevelXP определяет, сколько опыта нужно для следующего уровня.
 func calculateNextLevelXP(level int) int {
 	return 100 * level * level
 }
+

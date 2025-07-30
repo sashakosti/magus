@@ -1,169 +1,161 @@
 [
   {
-    "id": "81bbf482",
-    "title": "Помыть посуду",
-    "type": "chore",
-    "xp": 50,
-    "completed": true,
+    "id": "goal_system",
+    "title": "Фокус 1: Система Навыков (Skills) — Основа персонажа",
+    "type": "goal",
+    "xp": 250,
+    "completed": false,
     "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-09T17:20:29.603049+03:00"
+    "created_at": "0001-01-01T00:00:00Z"
   },
   {
-    "id": "1723546d",
-    "title": "Добавить таймер в magus",
-    "type": "meta",
+    "id": "focus_ui_skills",
+    "parent_id": "goal_system",
+    "title": "Создать UI для просмотра и прокачки навыков (skills_state.go)",
+    "type": "focus",
+    "hp": 150,
     "xp": 75,
     "tags": [
-      "magus",
-      "go",
-      "programming"
+      "ui",
+      "skills"
     ],
-    "completed": true,
+    "completed": false,
     "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-08T22:02:51.436891+03:00"
+    "created_at": "0001-01-01T00:00:00Z"
   },
   {
-    "id": "a53c76aa",
-    "title": "Приготовить позавтркать",
-    "type": "daily",
+    "id": "focus_skill_integration",
+    "parent_id": "goal_system",
+    "title": "Интегрировать влияние навыков на статы (HP, мана, фокус)",
+    "type": "focus",
+    "hp": 100,
     "xp": 50,
-    "completed": false,
-    "completed_at": "2025-07-16T18:02:24.089249+03:00",
-    "created_at": "2025-07-04T17:29:54.279908+03:00"
-  },
-  {
-    "id": "c9cfb63b",
-    "title": "Помыть посуду",
-    "type": "chore",
-    "xp": 70,
-    "completed": true,
-    "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-04T17:16:38.944796+03:00"
-  },
-  {
-    "id": "c50ef6c9",
-    "parent_id": "b4f8632f",
-    "title": "Уровень в бандит",
-    "type": "daily",
-    "xp": 50,
-    "completed": false,
-    "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-03T17:06:12.310865+03:00"
-  },
-  {
-    "id": "b4f8632f",
-    "title": "Bandit",
-    "type": "epic",
-    "xp": 1500,
-    "completed": false,
-    "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-03T17:05:23.951535+03:00"
-  },
-  {
-    "id": "f0a2f644",
-    "parent_id": "b2414891",
-    "title": "Ежедневный коммит по magus",
-    "type": "daily",
-    "xp": 50,
-    "completed": false,
-    "completed_at": "2025-07-10T19:38:11.483065+03:00",
-    "created_at": "2025-07-03T16:59:12.669509+03:00"
-  },
-  {
-    "id": "ef3ec7e1",
-    "parent_id": "b2414891",
-    "title": "Имплементация перков",
-    "type": "arc",
-    "xp": 50,
-    "completed": true,
-    "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-03T16:45:39.07516+03:00"
-  },
-  {
-    "id": "c6d435f9",
-    "parent_id": "b2414891",
-    "title": "Имплементация классов",
-    "type": "arc",
-    "xp": 50,
-    "completed": true,
-    "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-03T16:45:30.505395+03:00"
-  },
-  {
-    "id": "5257f7ff",
-    "parent_id": "b2414891",
-    "title": "Имплементация скиллов",
-    "type": "arc",
-    "xp": 150,
-    "completed": true,
-    "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-03T16:45:08.169666+03:00"
-  },
-  {
-    "id": "b2414891",
-    "title": "Построить Magus",
-    "type": "epic",
-    "xp": 150,
-    "completed": false,
-    "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-03T16:43:41.153708+03:00"
-  },
-  {
-    "id": "daab72dd",
-    "title": "Почистить зубы",
-    "type": "daily",
-    "xp": 15,
-    "completed": false,
-    "completed_at": "2025-07-16T18:02:20.974384+03:00",
-    "created_at": "2025-07-01T15:24:20.025708+03:00"
-  },
-  {
-    "id": "72fc1d7e",
-    "title": "Поработать над Go-проектом",
-    "type": "daily",
-    "xp": 50,
-    "completed": false,
-    "completed_at": "2025-07-16T18:02:18.954201+03:00",
-    "created_at": "2025-07-01T14:56:40.959691+03:00"
-  },
-  {
-    "id": "bbf7621d",
-    "title": "Помыться",
-    "type": "daily",
-    "xp": 25,
-    "completed": false,
-    "completed_at": "2025-07-16T17:41:23.613557+03:00",
-    "created_at": "2025-07-01T14:56:01.083205+03:00"
-  },
-  {
-    "id": "5a5b3525",
-    "title": "Начать изучение Go",
-    "type": "arc",
-    "xp": 50,
-    "completed": true,
-    "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-01T14:34:33.658544+03:00"
-  },
-  {
-    "id": "92d7ebd2",
-    "title": "Сделать утреннюю зарядку",
-    "type": "daily",
-    "xp": 10,
-    "completed": true,
-    "completed_at": "2025-07-01T14:39:46.108457+03:00",
-    "created_at": "2025-07-01T14:34:29.31417+03:00"
-  },
-  {
-    "id": "3cb3e266",
-    "title": "создать перки",
-    "type": "epic",
-    "xp": 150,
     "tags": [
-      "magus",
-      "go"
+      "mechanics",
+      "skills"
     ],
     "completed": false,
     "completed_at": "0001-01-01T00:00:00Z",
-    "created_at": "2025-07-15T03:50:15.322509+03:00"
+    "created_at": "0001-01-01T00:00:00Z"
+  },
+  {
+    "id": "goal_perks",
+    "title": "Фокус 2: Система Перков (Perks) — Уникальность класса",
+    "type": "goal",
+    "xp": 300,
+    "completed": false,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "0001-01-01T00:00:00Z"
+  },
+  {
+    "id": "focus_perk_mechanics",
+    "parent_id": "goal_perks",
+    "title": "Реализовать механику получения и выбора перков",
+    "type": "focus",
+    "hp": 200,
+    "xp": 100,
+    "tags": [
+      "ui",
+      "perks",
+      "mechanics"
+    ],
+    "completed": false,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "0001-01-01T00:00:00Z"
+  },
+  {
+    "id": "focus_perk_effects",
+    "parent_id": "goal_perks",
+    "title": "Начать реализацию пассивных и активных эффектов от перков",
+    "type": "focus",
+    "hp": 120,
+    "progress": 120,
+    "xp": 60,
+    "tags": [
+      "mechanics",
+      "perks"
+    ],
+    "completed": true,
+    "completed_at": "2025-07-25T16:49:46.573219+03:00",
+    "created_at": "0001-01-01T00:00:00Z"
+  },
+  {
+    "id": "goal_dungeon",
+    "title": "Фокус 3: Углубление механики Подземелья (Dungeon)",
+    "type": "goal",
+    "xp": 400,
+    "completed": false,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "0001-01-01T00:00:00Z"
+  },
+  {
+    "id": "focus_combat_system",
+    "parent_id": "goal_dungeon",
+    "title": "Реализовать боевую систему в подземелье с учетом навыков и перков",
+    "type": "focus",
+    "hp": 250,
+    "xp": 125,
+    "tags": [
+      "dungeon",
+      "mechanics"
+    ],
+    "completed": false,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "0001-01-01T00:00:00Z"
+  },
+  {
+    "id": "focus_dungeon_rewards",
+    "parent_id": "goal_dungeon",
+    "title": "Улучшить награды за прохождение подземелья",
+    "type": "focus",
+    "hp": 80,
+    "xp": 40,
+    "tags": [
+      "dungeon",
+      "rewards"
+    ],
+    "completed": false,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "0001-01-01T00:00:00Z"
+  },
+  {
+    "id": "goal_ux",
+    "title": "Фокус 4: Полировка и UX",
+    "type": "goal",
+    "xp": 200,
+    "completed": false,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "0001-01-01T00:00:00Z"
+  },
+  {
+    "id": "ritual_testing",
+    "parent_id": "goal_ux",
+    "title": "Протестировать новую логику квестов",
+    "type": "ritual",
+    "ritual_subtype": "maintenance",
+    "xp": 0,
+    "tags": [
+      "testing",
+      "ux"
+    ],
+    "completed": false,
+    "completed_at": "0001-01-01T00:00:00Z",
+    "created_at": "0001-01-01T00:00:00Z"
+  },
+  {
+    "id": "focus_feedback",
+    "parent_id": "goal_ux",
+    "title": "Добавить больше визуальной обратной связи (анимации, сообщения)",
+    "type": "focus",
+    "hp": 100,
+    "progress": 100,
+    "xp": 50,
+    "tags": [
+      "ui",
+      "ux"
+    ],
+    "completed": true,
+    "completed_at": "2025-07-26T18:43:51.023131+03:00",
+    "created_at": "0001-01-01T00:00:00Z"
   }
 ]

@@ -1,16 +1,23 @@
 {
   "name": "Dude",
   "class": "Маг",
-  "level": 4,
+  "level": 5,
   "hp": 100,
   "max_hp": 100,
-  "xp": 414,
-  "next_level_xp": 1600,
-  "gold": 24,
-  "mana": 0,
-  "max_mana": 0,
-  "unlocked_skills": null,
-  "skill_points": 2,
+  "xp": 987,
+  "next_level_xp": 2500,
+  "gold": 96,
+  "mana": 86,
+  "max_mana": 100,
+  "unlocked_skills": [
+    "mage_apprentice",
+    "fireball",
+    "hp_1",
+    "stamina_1",
+    "fire_damage_1",
+    "pyromancer"
+  ],
+  "skill_points": 6,
   "skills": {
     "Дисциплина": 5,
     "Живучесть": 5,
@@ -22,10 +29,19 @@
     "Стойкость": 5,
     "Эффективность": 5
   },
+  "stats": {
+    "strength": 0,
+    "endurance": 0,
+    "intelligence": 0,
+    "focus": 0,
+    "charisma": 0,
+    "willpower": 0,
+    "discipline": 0
+  },
   "last_completed_at": "0001-01-01T00:00:00Z",
   "history": {
-    "quests_completed": 38,
-    "xp_gained": 1780
+    "quests_completed": 52,
+    "xp_gained": 3825
   },
-  "last_seen": "2025-07-20T22:35:49.165205+03:00"
+  "last_seen": "2025-07-30T16:33:01.152783+03:00"
 }
